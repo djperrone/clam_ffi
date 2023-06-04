@@ -1,7 +1,13 @@
 {
 	"folders": [
 		{
-			"path": "ffi"
+			"path": "clam_ffi"
+		},
+		{
+			"path": "bind_gen"
+		},
+		{
+			"path": "cs_bindgen"
 		}
 	],
 	

@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 cbindgen = "0.24.5"
+interoptopus = "0.14.18"
+interoptopus_backend_c = "0.14.18"
+interoptopus_backend_csharp = "0.14.18"
+
+clam_ffi = { path = "../clam_ffi/" }
+clam = { path = "../clam/" }
+csbindgen = "1.7.3"

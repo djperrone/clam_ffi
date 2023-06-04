@@ -12,7 +12,7 @@ namespace My.Company
 {
     public static partial class InteropClass
     {
-        public const string NativeLib = "example_hello_world";
+        public const string NativeLib = "bind_gen";
 
         static InteropClass()
         {
