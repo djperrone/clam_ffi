@@ -631,7 +631,7 @@ pub fn reingold_tree_to_vec(root: Link) -> Vec<NodeI> {
 
 fn reingold_node_to_nodei(node: &Node) -> NodeI {
     let (left_name, right_name) = {
-        if node.is_leaf() {
+        if !node.is_leaf() {
             (
                 node.get_left_child().unwrap().as_ref().borrow().get_name(),
                 node.get_right_child().unwrap().as_ref().borrow().get_name(),
@@ -653,9 +653,4 @@ fn reingold_node_to_nodei(node: &Node) -> NodeI {
         left_name,
         right_name,
     )
-    // pos: Vec3::new(node.x, node.y, 0.),
-    // color: node.color.clone(),
-    // id: node.get_name(),
-    // left_child: left_name,
-    // right_child: right_name,
 }
