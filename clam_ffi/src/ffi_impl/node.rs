@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 extern crate nalgebra as na;
 
 pub struct NodeBaton {

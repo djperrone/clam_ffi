@@ -1,19 +1,19 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
+use rand::{rngs::ThreadRng, Rng};
+use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
-// use libc::rand;
-use rand::{rngs::ThreadRng, Rng};
 
 use clam::core::{cluster::Cluster, dataset::VecVec};
 
 use crate::debug;
 use crate::ffi_impl::node::NodeI;
 
-// use crate::utils::ffi_struct::Vec3;
 extern crate nalgebra as na;
 type Vec3 = na::Vector3<f32>;
-// const RADIUS : f32 = 25f32;
 const MIN_SEP: f32 = 1f32;
-// const MIN_SEP : f32 = RADIUS * 4f32;
 
 type Link = Option<Rc<RefCell<Node>>>;
 type ExtremeLink = Rc<RefCell<Extreme>>;
@@ -577,6 +577,9 @@ pub fn reingold_tree_to_vec(root: Link) -> Vec<NodeI> {
     let mut nodes: Vec<NodeI> = Vec::new();
     let mut queue = VecDeque::new();
     queue.push_front(root.clone());
+    nodes.push(reingold_node_to_nodei(
+        &root.unwrap().clone().as_ref().borrow(),
+    ));
 
     while let Some(node) = queue.pop_front() {
         if !node.clone().unwrap().clone().as_ref().borrow().is_leaf() {
@@ -626,6 +629,37 @@ pub fn reingold_tree_to_vec(root: Link) -> Vec<NodeI> {
         }
     }
 
+    return nodes;
+}
+
+fn flatten_tree_helper(root: Link, nodes: &mut Vec<NodeI>) {
+    if let Some(node) = root {
+        let node = node.as_ref().borrow();
+
+        if node.is_leaf() {
+            nodes.push(reingold_node_to_nodei(&node));
+
+            return;
+        } else {
+            nodes.push(reingold_node_to_nodei(&node));
+            flatten_tree_helper(node.get_left_child(), nodes);
+            flatten_tree_helper(node.get_right_child(), nodes);
+        }
+    }
+}
+
+pub fn flatten_reingold_tree(root: Link) -> Vec<NodeI> {
+    let mut nodes: Vec<NodeI> = Vec::new();
+    if let Some(node) = root.clone() {
+        let node = node.as_ref().borrow();
+        flatten_tree_helper(root.clone(), &mut nodes);
+
+        // nodes.push(reingold_node_to_nodei(&node));
+        // if !node.is_leaf() {
+        //     flatten_tree_helper(node.get_left_child(), &mut nodes);
+        //     flatten_tree_helper(node.get_right_child(), &mut nodes);
+        // }
+    }
     return nodes;
 }
 
