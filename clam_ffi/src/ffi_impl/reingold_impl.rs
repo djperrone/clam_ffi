@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 // use libc::rand;
 use rand::{rngs::ThreadRng, Rng};
@@ -5,6 +6,7 @@ use rand::{rngs::ThreadRng, Rng};
 use clam::core::{cluster::Cluster, dataset::VecVec};
 
 use crate::debug;
+use crate::ffi_impl::node::NodeI;
 
 // use crate::utils::ffi_struct::Vec3;
 extern crate nalgebra as na;
@@ -569,4 +571,91 @@ impl Node {
         a.borrow_mut().left_child = nodes.get(left).unwrap().clone();
         a.borrow_mut().right_child = nodes.get(right).unwrap().clone();
     }
+}
+
+pub fn reingold_tree_to_vec(root: Link) -> Vec<NodeI> {
+    let mut nodes: Vec<NodeI> = Vec::new();
+    let mut queue = VecDeque::new();
+    queue.push_front(root.clone());
+
+    while let Some(node) = queue.pop_front() {
+        if !node.clone().unwrap().clone().as_ref().borrow().is_leaf() {
+            queue.push_front(
+                node.clone()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow()
+                    .get_left_child(),
+            );
+            queue.push_front(
+                node.clone()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow()
+                    .get_right_child(),
+            );
+
+            nodes.push(reingold_node_to_nodei(
+                &node
+                    .clone()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow()
+                    .get_left_child()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow(),
+            ));
+            nodes.push(reingold_node_to_nodei(
+                &node
+                    .clone()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow()
+                    .get_right_child()
+                    .unwrap()
+                    .clone()
+                    .as_ref()
+                    .borrow(),
+            ));
+        }
+    }
+
+    return nodes;
+}
+
+fn reingold_node_to_nodei(node: &Node) -> NodeI {
+    let (left_name, right_name) = {
+        if node.is_leaf() {
+            (
+                node.get_left_child().unwrap().as_ref().borrow().get_name(),
+                node.get_right_child().unwrap().as_ref().borrow().get_name(),
+            )
+        } else {
+            (String::new(), String::new())
+        }
+    };
+    let color = node.color.clone();
+
+    NodeI::new(
+        node.x,
+        node.y,
+        0.,
+        color.x,
+        color.y,
+        color.z,
+        node.get_name(),
+        left_name,
+        right_name,
+    )
+    // pos: Vec3::new(node.x, node.y, 0.),
+    // color: node.color.clone(),
+    // id: node.get_name(),
+    // left_child: left_name,
+    // right_child: right_name,
 }

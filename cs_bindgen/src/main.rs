@@ -11,6 +11,7 @@ fn main() {
         .csharp_namespace("ClamFFI")
         .csharp_class_name("Clam")
         .csharp_class_accessibility("public")
+        .csharp_class_accessibility("public")
         .generate_csharp_file("../../unity/Assets/Plugins/ClamFFI.cs")
         .unwrap();
 }
