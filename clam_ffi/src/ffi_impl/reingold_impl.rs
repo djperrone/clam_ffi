@@ -15,7 +15,7 @@ extern crate nalgebra as na;
 type Vec3 = na::Vector3<f32>;
 const MIN_SEP: f32 = 1f32;
 
-type Link = Option<Rc<RefCell<Node>>>;
+pub type Link = Option<Rc<RefCell<Node>>>;
 type ExtremeLink = Rc<RefCell<Extreme>>;
 
 struct Extreme {
@@ -389,6 +389,27 @@ impl Node {
             }
             None => 0,
         }
+    }
+
+    pub fn get_child_names(&self) -> (String, String) {
+        if self.is_leaf() {
+            return (String::from(""), String::from(""));
+        }
+
+        return (
+            self.get_left_child()
+                .as_ref()
+                .unwrap()
+                .as_ref()
+                .borrow()
+                .get_name(),
+            self.get_right_child()
+                .as_ref()
+                .unwrap()
+                .as_ref()
+                .borrow()
+                .get_name(),
+        );
     }
 
     pub fn get_color(&self) -> Vec3 {

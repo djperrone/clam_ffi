@@ -1,6 +1,7 @@
 // // take awat reprc
 // // create struct Nodeforc#
 
+// #[repr(C)]
 // pub struct NodeBaton {
 //     x: f32,
 //     y: f32,
