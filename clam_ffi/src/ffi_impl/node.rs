@@ -2,6 +2,10 @@
 #![allow(unused_variables)]
 // use glam::Vec3;
 
+use std::ptr::{null, null_mut};
+
+use glam::Vec3;
+
 use crate::utils::helpers;
 
 use super::{
@@ -11,16 +15,47 @@ use super::{
 };
 
 #[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct NodeToUnity {
+    pub cardinality: i32, // stored in rust
+    pub depth: i32,       // stored in rust
+    pub arg_center: i32,  // stored in rust
+    pub arg_radius: i32,  // stored in rust
+                          // pub pos: Vec3,
+}
+
+impl NodeToUnity {
+    pub fn from_clam(node: &Clusterf32) -> Self {
+        let (left, right) = {
+            if let Some([left, right]) = node.children() {
+                (left.name(), right.name())
+            } else {
+                (String::from("-1"), String::from("-1"))
+            }
+        };
+
+        NodeToUnity {
+            cardinality: node.cardinality() as i32,
+            depth: node.depth() as i32,
+            arg_center: node.arg_center() as i32,
+            arg_radius: node.arg_radius() as i32,
+            // pos: Vec3::new(0., 1., 2.),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
 pub struct NodeFFI {
-    pos: glam::Vec3,   // stored in unity
-    color: glam::Vec3, // stored in unity
-    id: *mut i8,       // stored in unity and rust
-    left_id: *mut i8,  //stored in unity and rust
-    right_id: *mut i8, //stored in unity and rust
-    cardinality: i32,  // stored in rust
-    depth: i32,        // stored in rust
-    arg_center: i32,   // stored in rust
-    arg_radius: i32,   // stored in rust
+    pub pos: glam::Vec3,   // stored in unity
+    pub color: glam::Vec3, // stored in unity
+    pub id: *mut i8,       // stored in unity and rust
+    pub left_id: *mut i8,  //stored in unity and rust
+    pub right_id: *mut i8, //stored in unity and rust
+    pub cardinality: i32,  // stored in rust
+    pub depth: i32,        // stored in rust
+    pub arg_center: i32,   // stored in rust
+    pub arg_radius: i32,   // stored in rust
 }
 
 impl NodeFFI {
@@ -79,6 +114,20 @@ impl NodeFFI {
         }
     }
 
+    pub fn default() -> Self {
+        NodeFFI {
+            pos: glam::Vec3::new(0., 0., 0.),   // stored in unity
+            color: glam::Vec3::new(0., 0., 0.), // stored in unity
+            id: helpers::alloc_to_c_char("default".to_string()), // stored in unity and rust
+            left_id: helpers::alloc_to_c_char("default".to_string()), //stored in unity and rust
+            right_id: helpers::alloc_to_c_char("default".to_string()), //stored in unity and rust
+            cardinality: 0,                     // stored in rust
+            depth: 0,                           // stored in rust
+            arg_center: 0,                      // stored in rust
+            arg_radius: 0,                      // stored in rust
+        }
+    }
+
     pub fn from_reingold_node(node: &reingold_impl::Node) -> Self {
         let color = node.get_color();
         let child_names = node.get_child_names();
@@ -95,14 +144,34 @@ impl NodeFFI {
         }
     }
     pub fn free_ids(&mut self) {
-        helpers::free_c_char(self.id);
-        helpers::free_c_char(self.left_id);
-        helpers::free_c_char(self.right_id);
+        if self.id != null_mut() {
+            helpers::free_c_char(self.id);
+        }
+        if self.left_id != null_mut() {
+            helpers::free_c_char(self.left_id);
+        }
+        if self.right_id != null_mut() {
+            helpers::free_c_char(self.right_id);
+        }
+    }
+
+    pub fn from_copy(&mut self, other: &NodeFFI) -> () {
+        self.arg_center = other.arg_center;
+        self.arg_radius = other.arg_radius;
+        self.cardinality = other.cardinality;
+        self.depth = other.depth;
+        self.id = other.id;
+        self.left_id = other.left_id;
+        self.right_id = other.right_id;
     }
 
     // pub fn set_pos(&self, x: f32, y: f32, z: f32) {
     //     self.p
     // }
+
+    pub fn name(&self) -> *mut i8 {
+        return self.id;
+    }
 
     pub fn to_ptr(self) -> *mut NodeFFI {
         Box::into_raw(Box::new(self))

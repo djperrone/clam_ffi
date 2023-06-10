@@ -107,6 +107,7 @@ impl Node {
             let [left, right] = subtree.unwrap();
             if let Some(node) = draw_root.clone() {
                 if let Ok(id) = i32::from_str_radix(left.name().as_str(), 16) {
+                    
                     if id == -1 {
                         debug!("id is naturally -1?");
                     }

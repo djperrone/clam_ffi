@@ -3,6 +3,7 @@ extern crate nalgebra as na;
 use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
+use serde;
 use std::cell::RefCell;
 use std::mem::transmute;
 use std::rc::Rc;
@@ -12,7 +13,7 @@ use crate::utils::{anomaly_readers, distances};
 use crate::debug;
 
 use super::node::NodeFFI;
-use super::reingold_impl;
+use super::reingold_impl::{self, Node};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
 
@@ -123,6 +124,63 @@ impl<'a> Handle<'a> {
     }
     pub fn get_dataset(&self) -> &DataSet {
         &self.dataset.as_ref().unwrap()
+    }
+
+    pub fn get_root(&self) -> &Option<Rc<RefCell<Clusterf32<'a>>>> {
+        &self.clam_root
+    }
+
+    pub fn get_node_data_helper(root: &Clusterf32, mut name: String) -> Result<NodeFFI, String> {
+        // if name.len() == 0 {
+        return Ok(NodeFFI::from_clam(root));
+        // }
+        // debug!("{:?}", name);
+        // let choice = name.pop();
+        // if let Some([left, right]) = root.children() {
+        //     if choice.unwrap() == '0' {
+        //         return Self::get_node_data_helper(left, name);
+        //     } else if choice.unwrap() == '1' {
+        //         return Self::get_node_data_helper(right, name);
+        //     }
+        // } else {
+        //     return Err("node not found - no children available".to_string());
+        // }
+
+        // return Err("node not found".to_string());
+    }
+    pub fn get_node_data(&self, name: String) -> Result<NodeFFI, String> {
+        if let Some(node) = self.clam_root.clone() {
+            let node = node.as_ref().borrow();
+            return Self::get_node_data_helper(&node, name);
+        }
+        return Err("root not built".to_string());
+
+        // left is false, right is true
+
+        // if let Some(mut node) = self.clam_root.clone(){
+        //     let mut node = node.as_ref().borrow();
+
+        //     for c in name.chars(){
+
+        //         if let Some([left, right]) = node.children(){
+        //             if c == '0'{
+        //                 *node = left;
+        //             }
+        //         }
+        //     }
+
+        // }
+
+        // let root = self.clam_root.clone();
+        // if let Some(node) = root {
+        //     for c in name.chars() {
+        //         if c == '0' {
+        //             if let Some([left, right]) = node.as_ref().borrow().children() {
+        //                 // node = Rc::new(RefCell::new(left));
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {
