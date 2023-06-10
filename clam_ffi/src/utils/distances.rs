@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::f32::EPSILON;
 
 pub fn from_name(name: &str) -> fn(&[f32], &[f32]) -> f32 {

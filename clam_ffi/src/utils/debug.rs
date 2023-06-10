@@ -23,10 +23,10 @@ macro_rules! debug {
         });
 }
 
-macro_rules! try_or_string {
-    ($operation:expr) => {
-        if let Err(error) = $operation {
-            return Err(format!("{:}", error));
-        }
-    };
-}
+// macro_rules! try_or_string {
+//     ($operation:expr) => {
+//         if let Err(error) = $operation {
+//             return Err(format!("{:}", error));
+//         }
+//     };
+// }

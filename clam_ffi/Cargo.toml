@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 clam = { path = "../clam/" }
+glam = "0.24.0"
 interoptopus = "0.14.18"
 interoptopus_backend_c = "0.14.18"
 interoptopus_backend_csharp = "0.14.18"

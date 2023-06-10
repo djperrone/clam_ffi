@@ -2,14 +2,11 @@
 #![allow(unused_variables)]
 
 use rand::{rngs::ThreadRng, Rng};
-use std::borrow::Borrow;
-use std::collections::VecDeque;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use clam::core::{cluster::Cluster, dataset::VecVec};
 
 use crate::debug;
-use crate::ffi_impl::node::NodeI;
 
 extern crate nalgebra as na;
 type Vec3 = na::Vector3<f32>;
@@ -43,26 +40,6 @@ impl Extreme {
         self.level = other.as_ref().borrow().level;
     }
 }
-
-// #[derive(Clone)]
-// pub struct Color
-// {
-//     r : f32,
-//     g : f32,
-//     b : f32,
-// }
-
-// impl Color{
-//     pub fn rgb(r : f32, g : f32, b : f32) -> Color
-//     {
-//         Color { r: r, g: g, b: b }
-//     }
-
-//     pub fn get_rgb(&self) -> (f32,f32,f32)
-//     {
-//         return (self.r, self.g, self.b);
-//     }
-// }
 
 pub struct Node {
     x: f32,
@@ -592,120 +569,4 @@ impl Node {
         a.borrow_mut().left_child = nodes.get(left).unwrap().clone();
         a.borrow_mut().right_child = nodes.get(right).unwrap().clone();
     }
-}
-
-pub fn reingold_tree_to_vec(root: Link) -> Vec<NodeI> {
-    let mut nodes: Vec<NodeI> = Vec::new();
-    let mut queue = VecDeque::new();
-    queue.push_front(root.clone());
-    nodes.push(reingold_node_to_nodei(
-        &root.unwrap().clone().as_ref().borrow(),
-    ));
-
-    while let Some(node) = queue.pop_front() {
-        if !node.clone().unwrap().clone().as_ref().borrow().is_leaf() {
-            queue.push_front(
-                node.clone()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow()
-                    .get_left_child(),
-            );
-            queue.push_front(
-                node.clone()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow()
-                    .get_right_child(),
-            );
-
-            nodes.push(reingold_node_to_nodei(
-                &node
-                    .clone()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow()
-                    .get_left_child()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow(),
-            ));
-            nodes.push(reingold_node_to_nodei(
-                &node
-                    .clone()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow()
-                    .get_right_child()
-                    .unwrap()
-                    .clone()
-                    .as_ref()
-                    .borrow(),
-            ));
-        }
-    }
-
-    return nodes;
-}
-
-fn flatten_tree_helper(root: Link, nodes: &mut Vec<NodeI>) {
-    if let Some(node) = root {
-        let node = node.as_ref().borrow();
-
-        if node.is_leaf() {
-            nodes.push(reingold_node_to_nodei(&node));
-
-            return;
-        } else {
-            nodes.push(reingold_node_to_nodei(&node));
-            flatten_tree_helper(node.get_left_child(), nodes);
-            flatten_tree_helper(node.get_right_child(), nodes);
-        }
-    }
-}
-
-pub fn flatten_reingold_tree(root: Link) -> Vec<NodeI> {
-    let mut nodes: Vec<NodeI> = Vec::new();
-    if let Some(node) = root.clone() {
-        let node = node.as_ref().borrow();
-        flatten_tree_helper(root.clone(), &mut nodes);
-
-        // nodes.push(reingold_node_to_nodei(&node));
-        // if !node.is_leaf() {
-        //     flatten_tree_helper(node.get_left_child(), &mut nodes);
-        //     flatten_tree_helper(node.get_right_child(), &mut nodes);
-        // }
-    }
-    return nodes;
-}
-
-fn reingold_node_to_nodei(node: &Node) -> NodeI {
-    let (left_name, right_name) = {
-        if !node.is_leaf() {
-            (
-                node.get_left_child().unwrap().as_ref().borrow().get_name(),
-                node.get_right_child().unwrap().as_ref().borrow().get_name(),
-            )
-        } else {
-            (String::new(), String::new())
-        }
-    };
-    let color = node.color.clone();
-
-    NodeI::new(
-        node.x,
-        node.y,
-        0.,
-        color.x,
-        color.y,
-        color.z,
-        node.get_name(),
-        left_name,
-        right_name,
-    )
 }
