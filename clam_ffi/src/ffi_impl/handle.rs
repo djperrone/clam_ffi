@@ -3,7 +3,6 @@ extern crate nalgebra as na;
 use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
-use serde;
 use std::cell::RefCell;
 use std::mem::transmute;
 use std::rc::Rc;
@@ -13,7 +12,7 @@ use crate::utils::{anomaly_readers, distances};
 use crate::debug;
 
 use super::node::NodeFFI;
-use super::reingold_impl::{self, Node};
+use super::reingold_impl::{self};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
 
@@ -155,33 +154,6 @@ impl<'a> Handle<'a> {
         }
         debug!("root not built");
         return Err("root not built".to_string());
-
-        // left is false, right is true
-
-        // if let Some(mut node) = self.clam_root.clone(){
-        //     let mut node = node.as_ref().borrow();
-
-        //     for c in name.chars(){
-
-        //         if let Some([left, right]) = node.children(){
-        //             if c == '0'{
-        //                 *node = left;
-        //             }
-        //         }
-        //     }
-
-        // }
-
-        // let root = self.clam_root.clone();
-        // if let Some(node) = root {
-        //     for c in name.chars() {
-        //         if c == '0' {
-        //             if let Some([left, right]) = node.as_ref().borrow().children() {
-        //                 // node = Rc::new(RefCell::new(left));
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {

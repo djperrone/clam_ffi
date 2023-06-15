@@ -1,60 +1,104 @@
 //need to use partial struct to pass by reference and access sub structs
 // pass by pointer with classes but cant seem to access sub structs
 
-use std::{cell::RefCell, ffi::CString, rc::Rc};
+use std::{
+    cell::RefCell,
+    ffi::{c_char, CStr},
+    rc::Rc,
+};
 
 mod core;
 mod ffi_impl;
 mod utils;
-use ffi_impl::{
-    handle::Handle,
-    node::{NodeFFI, NodeToUnity},
-};
+use ffi_impl::{handle::Handle, node::NodeFFI};
 use utils::helpers;
 type CBFnNodeVistor = extern "C" fn(*mut NodeFFI) -> ();
 
-#[no_mangle]
-pub extern "C" fn get_node_data2(
-    context: Option<&mut Handle>,
-    incoming: Option<&NodeFFI>,
-    outgoing: Option<&mut NodeFFI>,
-) -> () {
-    if let Some(handle) = context {
-        if let Some(in_node) = incoming {
-            if let Some(out_node) = outgoing {
-                *out_node = *in_node;
+#[repr(C)]
+#[derive(Clone, Debug)]
+pub struct ComplexStruct {
+    my_str: StringStruct1,
+}
 
-                if let Some(root) = handle.get_root() {
-                    unsafe {
-                        let test_name =
-                            helpers::csharp_to_rust_utf8(out_node.id as *const u8, out_node.id_len);
-                        match test_name {
-                            Ok(name) => {
-                                debug!("test name -- {} -- worked!", name);
-                            }
-                            Err(e) => {
-                                debug!("test name failed! {}", e);
-                            }
-                        }
-                    }
-                    out_node.set_from_clam_node(root.clone());
-                    debug!("node data card {}", out_node.cardinality);
-                    debug!("node data card {}", out_node.arg_center);
-                    debug!("node data card {}", out_node.arg_radius);
-                    debug!("node data card {}", out_node.depth);
-                    debug!("node data card {:?}", out_node.pos);
-                    debug!("node data card {:?}", out_node.color);
-                    // debug!("node data card {}", out_node.id);
-                    return;
-                }
-            }
+#[repr(C)]
+#[derive(Clone, Debug)]
+pub struct StringStruct1 {
+    pub utf8_str: *mut u8,
+    pub utf8_len: i32,
+}
+
+#[repr(C)]
+#[derive(Clone, Debug)]
+pub struct StringStruct2 {
+    pub s: String,
+}
+
+impl StringStruct2 {
+    pub unsafe fn new(other: &StringStruct1) -> Self {
+        StringStruct2 {
+            s: helpers::csharp_to_rust_utf8(other.utf8_str, other.utf8_len)
+                .unwrap_or("failed to do stuff".to_string()),
         }
     }
-    debug!("get_node data2 went wrong");
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn get_node_data3(
+pub unsafe extern "C" fn test_string_struct2(
+    incoming: Option<&ComplexStruct>,
+    outgoing: Option<&mut ComplexStruct>,
+) -> () {
+    if let Some(in_struct) = incoming {
+        let some_str =
+            helpers::csharp_to_rust_utf8(in_struct.my_str.utf8_str, in_struct.my_str.utf8_len);
+
+        // debug!("start string struct test ");
+
+        // let ss = StringStruct2::new(in_struct);
+        let tests = "test".to_string();
+        let mut test = *in_struct.my_str.utf8_str;
+        *(in_struct.my_str.utf8_str.add(1)) = 107;
+        let mut i = 0 as usize;
+        for ch in tests.chars() {
+            *(in_struct.my_str.utf8_str.add(i as usize)) = ch as u8;
+            i += 1;
+        }
+        debug!("string struct test {:?}", some_str);
+        debug!("string struct test {:?}", *in_struct.my_str.utf8_str)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn test_string_struct(
+    incoming: Option<&StringStruct1>,
+    outgoing: Option<&mut StringStruct1>,
+) -> () {
+    if let Some(in_struct) = incoming {
+        let some_str = helpers::csharp_to_rust_utf8(in_struct.utf8_str, in_struct.utf8_len);
+
+        // debug!("start string struct test ");
+
+        // let ss = StringStruct2::new(in_struct);
+        let mut test = *in_struct.utf8_str;
+        *in_struct.utf8_str = 109;
+        debug!("string struct test {:?}", some_str);
+        debug!("string struct test {:?}", *in_struct.utf8_str)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn test_string_fn(s: *const c_char) -> u32 {
+    let c_str = unsafe {
+        assert!(!s.is_null());
+
+        CStr::from_ptr(s)
+    };
+    debug!("cstr testing {:?}", c_str);
+    let r_str = c_str.to_str().unwrap();
+    r_str.chars().count() as u32
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_node_data(
     context: Option<&mut Handle>,
     data_name: *const u8,
     name_len: i32,
@@ -89,7 +133,7 @@ pub unsafe extern "C" fn get_node_data3(
                         //     }
                         // }
                         out_node.set_from_node_ffi(&data);
-                      
+
                         debug!("node data card {}", out_node.cardinality);
                         debug!("node data card {}", out_node.arg_center);
                         debug!("node data card {}", out_node.arg_radius);
@@ -142,45 +186,6 @@ pub extern "C" fn free_node_string(
 pub extern "C" fn free_string(data: *mut i8) {
     debug!("freeing string");
     helpers::free_c_char(data);
-}
-
-#[no_mangle]
-pub extern "C" fn get_node_data(
-    context: *mut Handle,
-    incoming: Option<&NodeToUnity>,
-    outgoing: Option<&mut NodeToUnity>,
-) -> () {
-    // if let Some(context) = context {
-    if let Some(in_node) = incoming {
-        if let Some(out_node) = outgoing {
-            *out_node = *in_node;
-            if let Some(node) = Handle::from_ptr(context).get_root() {
-                let node = node.as_ref().borrow();
-                out_node.arg_center = node.arg_center() as i32;
-                out_node.arg_radius = node.arg_radius() as i32;
-                out_node.cardinality = node.cardinality() as i32;
-                out_node.depth = node.depth() as i32;
-                debug!("card ouy {}", out_node.cardinality);
-                debug!("card root {}", node.cardinality());
-                debug!("finished passing data");
-                return;
-            }
-        }
-    }
-    // }
-
-    debug!("somemthing went wrong ")
-    // // let _context = context.unwrap();
-    // let incoming = incoming.unwrap();
-    // let outgoing = outgoing.unwrap();
-
-    // outgoing.ammo *= 2;
-    // outgoing.player_1.x *= 2.0;
-    // outgoing.player_1.y *= 2.0;
-    // outgoing.player_1.z *= 2.0;
-    // outgoing.player_2.x *= 2.0;
-    // outgoing.player_2.y *= 2.0;
-    // outgoing.player_2.z *= 2.0;
 }
 
 #[no_mangle]
