@@ -131,28 +131,29 @@ impl<'a> Handle<'a> {
     }
 
     pub fn get_node_data_helper(root: &Clusterf32, mut name: String) -> Result<NodeFFI, String> {
-        // if name.len() == 0 {
-        return Ok(NodeFFI::from_clam(root));
-        // }
-        // debug!("{:?}", name);
-        // let choice = name.pop();
-        // if let Some([left, right]) = root.children() {
-        //     if choice.unwrap() == '0' {
-        //         return Self::get_node_data_helper(left, name);
-        //     } else if choice.unwrap() == '1' {
-        //         return Self::get_node_data_helper(right, name);
-        //     }
-        // } else {
-        //     return Err("node not found - no children available".to_string());
-        // }
+        if name.len() == 0 {
+            return Ok(NodeFFI::from_clam(root));
+        }
+        debug!("{:?}", name);
+        let choice = name.pop();
+        if let Some([left, right]) = root.children() {
+            if choice.unwrap() == '0' {
+                return Self::get_node_data_helper(left, name);
+            } else if choice.unwrap() == '1' {
+                return Self::get_node_data_helper(right, name);
+            }
+        } else {
+            return Err("node not found - no children available".to_string());
+        }
 
-        // return Err("node not found".to_string());
+        return Err("node not found".to_string());
     }
     pub fn get_node_data(&self, name: String) -> Result<NodeFFI, String> {
         if let Some(node) = self.clam_root.clone() {
             let node = node.as_ref().borrow();
             return Self::get_node_data_helper(&node, name);
         }
+        debug!("root not built");
         return Err("root not built".to_string());
 
         // left is false, right is true

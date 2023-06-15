@@ -1,7 +1,7 @@
 //need to use partial struct to pass by reference and access sub structs
 // pass by pointer with classes but cant seem to access sub structs
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, ffi::CString, rc::Rc};
 
 mod core;
 mod ffi_impl;
@@ -13,57 +13,135 @@ use ffi_impl::{
 use utils::helpers;
 type CBFnNodeVistor = extern "C" fn(*mut NodeFFI) -> ();
 
-// #[no_mangle]
-// pub unsafe extern "C" fn create_node_baton(data_name: *const u8, name_len: i32) -> *mut NodeFFI {
-//     return Box::into_raw(Box::new(NodeFFI::default()));
-// }
+#[no_mangle]
+pub extern "C" fn get_node_data2(
+    context: Option<&mut Handle>,
+    incoming: Option<&NodeFFI>,
+    outgoing: Option<&mut NodeFFI>,
+) -> () {
+    if let Some(handle) = context {
+        if let Some(in_node) = incoming {
+            if let Some(out_node) = outgoing {
+                *out_node = *in_node;
 
-// #[no_mangle]
-// pub unsafe extern "C" fn destroy_node_baton(node: *mut NodeFFI) -> () {
-//     Box::from_raw(node).free_ids();
-
-//     // return Box::into_raw(Box::new(NodeFFI::default()));
-// }
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct Vec3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-
-/// A vector used in our game engine.
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct SuperComplexEntity {
-    pub player_1: Vec3,
-    pub player_2: Vec3,
-    pub ammo: u64,
-    /// Point to an ASCII encoded whatnot.
-    pub some_str: *const u8,
-    pub str_len: u32,
+                if let Some(root) = handle.get_root() {
+                    unsafe {
+                        let test_name =
+                            helpers::csharp_to_rust_utf8(out_node.id as *const u8, out_node.id_len);
+                        match test_name {
+                            Ok(name) => {
+                                debug!("test name -- {} -- worked!", name);
+                            }
+                            Err(e) => {
+                                debug!("test name failed! {}", e);
+                            }
+                        }
+                    }
+                    out_node.set_from_clam_node(root.clone());
+                    debug!("node data card {}", out_node.cardinality);
+                    debug!("node data card {}", out_node.arg_center);
+                    debug!("node data card {}", out_node.arg_radius);
+                    debug!("node data card {}", out_node.depth);
+                    debug!("node data card {:?}", out_node.pos);
+                    debug!("node data card {:?}", out_node.color);
+                    // debug!("node data card {}", out_node.id);
+                    return;
+                }
+            }
+        }
+    }
+    debug!("get_node data2 went wrong");
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn example_double_super_complex_entity(
+pub unsafe extern "C" fn get_node_data3(
     context: Option<&mut Handle>,
-    incoming: *mut NodeToUnity,
-    outgoing: *mut NodeToUnity,
+    data_name: *const u8,
+    name_len: i32,
+    incoming: Option<&NodeFFI>,
+    outgoing: Option<&mut NodeFFI>,
 ) -> () {
-    let _context = context.unwrap();
-    // let incoming = incoming.unwrap();
-    // let outgoing = outgoing.unwrap();
+    if let Some(handle) = context {
+        if let Some(in_node) = incoming {
+            if let Some(out_node) = outgoing {
+                let data_name = match helpers::csharp_to_rust_utf8(data_name, name_len) {
+                    Ok(data_name) => data_name,
+                    Err(e) => {
+                        debug!("{}", e);
+                        return;
+                    }
+                };
+                // Node::NodeData node_data
+                *out_node = *in_node;
 
-    // *outgoing = *incoming;
+                match handle.get_node_data(data_name.chars().rev().collect()) {
+                    Ok(data) => {
+                        // unsafe {
+                        //     let test_name =
+                        //         helpers::csharp_to_rust_utf8(out_node.id as *const u8, out_node.id_len);
+                        //     match test_name {
+                        //         Ok(name) => {
+                        //             debug!("test name -- {} -- worked!", name);
+                        //         }
+                        //         Err(e) => {
+                        //             debug!("test name failed! {}", e);
+                        //         }
+                        //     }
+                        // }
+                        out_node.set_from_node_ffi(&data);
+                      
+                        debug!("node data card {}", out_node.cardinality);
+                        debug!("node data card {}", out_node.arg_center);
+                        debug!("node data card {}", out_node.arg_radius);
+                        debug!("node data card {}", out_node.depth);
+                        debug!("node data card {:?}", out_node.pos);
+                        debug!("node data card {:?}", out_node.color);
+                        // debug!("node data card {}", out_node.id);
+                        return;
+                    }
+                    Err(e) => {
+                        debug!("{}", e)
+                    }
+                }
+                debug!("get_node data3 went wrong1");
+                return;
+            }
 
-    (*incoming).cardinality = 2;
-    (*incoming).arg_center = 2;
-    (*incoming).arg_radius = 2;
-    (*incoming).depth = 2;
-    debug!("card ouy {}", (*incoming).cardinality);
-    debug!("card root {}", (*incoming).cardinality);
-    debug!("finished passing data");
+            debug!("get_node data3 went wrong2");
+            return;
+        }
+        debug!("get_node data3 went wrong3");
+        return;
+    }
+    debug!("get_node data3 went wrong4");
+    return;
+}
+
+#[no_mangle]
+pub extern "C" fn free_node_string(
+    context: Option<&mut Handle>,
+    incoming: Option<&NodeFFI>,
+    outgoing: Option<&mut NodeFFI>,
+) -> () {
+    if let Some(handle) = context {
+        if let Some(in_node) = incoming {
+            if let Some(out_node) = outgoing {
+                *out_node = *in_node;
+
+                if let Some(_) = handle.get_root() {
+                    out_node.free_ids();
+                    debug!("freed ids");
+                    return;
+                }
+            }
+        }
+    }
+    debug!("free_node_string we nt wrong");
+}
+#[no_mangle]
+pub extern "C" fn free_string(data: *mut i8) {
+    debug!("freeing string");
+    helpers::free_c_char(data);
 }
 
 #[no_mangle]

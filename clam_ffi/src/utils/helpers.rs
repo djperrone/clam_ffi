@@ -6,7 +6,11 @@ pub fn alloc_to_c_char(str: String) -> *mut c_char {
 }
 
 pub fn free_c_char(str: *mut c_char) {
-    unsafe { CString::from_raw(str) };
+    if !str.is_null() {
+        unsafe { CString::from_raw(str) };
+    } else {
+        debug!("tried to free null string");
+    }
 }
 
 pub unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, String> {
