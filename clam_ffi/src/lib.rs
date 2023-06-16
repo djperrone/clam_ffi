@@ -2,6 +2,7 @@
 // pass by pointer with classes but cant seem to access sub structs
 
 use std::{
+    borrow::Borrow,
     cell::RefCell,
     ffi::{c_char, CStr},
     rc::Rc,
@@ -10,21 +11,34 @@ use std::{
 mod core;
 mod ffi_impl;
 mod utils;
-use ffi_impl::{handle::Handle, node::NodeFFI};
+use ffi_impl::{
+    handle::Handle,
+    node::{NodeData2, NodeFFI, StringFFI},
+};
 use utils::helpers;
 type CBFnNodeVistor = extern "C" fn(*mut NodeFFI) -> ();
+type CBFnNodeVistor2 = extern "C" fn(Option<&NodeData2>) -> ();
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct ComplexStruct {
     my_str: StringStruct1,
 }
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct StringStruct1 {
     pub utf8_str: *mut u8,
     pub utf8_len: i32,
+}
+
+impl StringStruct1 {
+    pub fn new(data: String) -> Self {
+        StringStruct1 {
+            utf8_str: helpers::alloc_to_c_char(data.clone()) as *mut u8,
+            utf8_len: data.len() as i32,
+        }
+    }
 }
 
 #[repr(C)]
@@ -38,6 +52,87 @@ impl StringStruct2 {
         StringStruct2 {
             s: helpers::csharp_to_rust_utf8(other.utf8_str, other.utf8_len)
                 .unwrap_or("failed to do stuff".to_string()),
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn test_node_rust_alloc(
+    incoming: Option<&NodeData2>,
+    outgoing: Option<&mut NodeData2>,
+) {
+    // let mystr = helpers::alloc_to_c_char("hello123".to_string());
+    // let ffi_string = StringStruct1::new("hello123".to_string());
+    if let Some(in_data) = incoming {
+        if let Some(out_data) = outgoing {
+            *out_data = *in_data;
+            out_data.id = StringFFI::new("hello123".to_string());
+            // out_data.my_str.utf8_str = helpers::alloc_to_c_char("hello123".to_string()) as *mut u8;
+
+            debug!("string struct test 123 {:?}", out_data.id.as_string());
+            // helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
+            // std::mem::forget(out_data.my_str);
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn test_node_rust_alloc2(
+    context: Option<&mut Handle>,
+    visitor: CBFnNodeVistor2,
+) {
+    // let mystr = helpers::alloc_to_c_char("hello123".to_string());
+    // let ffi_string = StringStruct1::new("hello123".to_string());
+    if let Some(handle) = context {
+        // if let Some(out_data) = outgoing {
+        //     *out_data = *in_data;
+        //     out_data.id = StringFFI::new("hello123".to_string());
+        //     // out_data.my_str.utf8_str = helpers::alloc_to_c_char("hello123".to_string()) as *mut u8;
+
+        //     debug!("string struct test 123 {:?}", out_data.id.as_string());
+        //     // helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
+        //     // std::mem::forget(out_data.my_str);
+        // }
+
+        let data = NodeData2::from_clam(&handle.get_root().as_ref().unwrap().as_ref().borrow());
+        visitor(Some(&data));
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn test_string_struct_rust_alloc(
+    incoming: Option<&ComplexStruct>,
+    outgoing: Option<&mut ComplexStruct>,
+) {
+    // let mystr = helpers::alloc_to_c_char("hello123".to_string());
+    // let ffi_string = StringStruct1::new("hello123".to_string());
+    if let Some(in_data) = incoming {
+        if let Some(out_data) = outgoing {
+            *out_data = *in_data;
+            out_data.my_str = StringStruct1::new("hello123".to_string());
+            // out_data.my_str.utf8_str = helpers::alloc_to_c_char("hello123".to_string()) as *mut u8;
+
+            debug!("string struct test 123 {:?}", out_data.my_str.utf8_str);
+            // helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
+            // std::mem::forget(out_data.my_str);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn free_string2(
+    incoming: Option<&ComplexStruct>,
+    outgoing: Option<&mut ComplexStruct>,
+) {
+    debug!("freeing string");
+    if let Some(in_data) = incoming {
+        if let Some(out_data) = outgoing {
+            *out_data = *in_data;
+            // out_data.my_str = StringStruct1::new("hello123".to_string());
+            // out_data.my_str.utf8_str = helpers::alloc_to_c_char("hello123".to_string()) as *mut u8;
+
+            debug!("string struct test 123 {:?}", out_data.my_str.utf8_str);
+            helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
         }
     }
 }
@@ -266,6 +361,16 @@ pub unsafe extern "C" fn traverse_tree_df(ptr: *mut Handle, node_visitor: CBFnNo
 
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn traverse_tree_df2(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
+    if !ptr.is_null() {
+        // return Handle::from_ptr(ptr).traverse_tree_df2(node_visitor);
+    }
+
+    return 0;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn create_reingold_layout(
     ptr: *mut Handle,

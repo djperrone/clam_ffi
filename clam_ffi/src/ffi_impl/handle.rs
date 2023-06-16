@@ -11,7 +11,7 @@ use crate::utils::{anomaly_readers, distances};
 
 use crate::debug;
 
-use super::node::NodeFFI;
+use super::node::{NodeFFI, NodeData2};
 use super::reingold_impl::{self};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
@@ -110,6 +110,36 @@ impl<'a> Handle<'a> {
             Self::traverse_tree_df_helper(right, node_visitor);
         }
     }
+
+    // pub fn traverse_tree_df2(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
+    //     if let Some(root) = &self.clam_root {
+    //         let node = root.as_ref().borrow();
+    //         Self::traverse_tree_df_helper2(&node, node_visitor);
+    //         return 1;
+    //     }
+    //     return 0;
+    // }
+
+    // fn traverse_tree_df_helper2(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor2) {
+    //     if root.is_leaf() {
+    //         let baton = NodeData2::from_clam(&root).to_ptr();
+
+    //         node_visitor(baton);
+    //         return;
+    //     }
+    //     if let Some([left, right]) = root.children() {
+    //         let baton = NodeFFI::from_clam(&root).to_ptr();
+
+    //         node_visitor(baton);
+
+    //         unsafe {
+    //             Box::from_raw(baton).free_ids();
+    //         }
+
+    //         Self::traverse_tree_df_helper(left, node_visitor);
+    //         Self::traverse_tree_df_helper(right, node_visitor);
+    //     }
+    // }
 
     pub fn get_num_nodes(&self) -> i32 {
         if let Some(root) = &self.clam_root {
