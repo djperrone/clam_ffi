@@ -7,12 +7,11 @@ use std::cell::RefCell;
 use std::mem::transmute;
 use std::rc::Rc;
 
-use crate::ffi_impl::clam_helpers;
-use crate::utils::{anomaly_readers, debug, distances, helpers};
+use crate::utils::{anomaly_readers, distances, helpers};
 
 use crate::debug;
 
-use super::node::{NodeData2, NodeFFI};
+use super::node::NodeData2;
 use super::reingold_impl::{self};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
@@ -82,36 +81,6 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn traverse_tree_df(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {
-        if let Some(root) = &self.clam_root {
-            let node = root.as_ref().borrow();
-            Self::traverse_tree_df_helper(&node, node_visitor);
-            return 1;
-        }
-        return 0;
-    }
-
-    fn traverse_tree_df_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor) {
-        if root.is_leaf() {
-            let baton = NodeFFI::from_clam(&root).to_ptr();
-
-            node_visitor(baton);
-            return;
-        }
-        if let Some([left, right]) = root.children() {
-            let baton = NodeFFI::from_clam(&root).to_ptr();
-
-            node_visitor(baton);
-
-            unsafe {
-                Box::from_raw(baton).free_ids();
-            }
-
-            Self::traverse_tree_df_helper(left, node_visitor);
-            Self::traverse_tree_df_helper(right, node_visitor);
-        }
-    }
-
     pub fn traverse_tree_df2(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
         if let Some(root) = &self.clam_root {
             let node = root.as_ref().borrow();
@@ -162,34 +131,7 @@ impl<'a> Handle<'a> {
         &self.clam_root
     }
 
-    pub fn get_node_data_helper(root: &Clusterf32, mut name: String) -> Result<NodeFFI, String> {
-        if name.len() == 0 {
-            return Ok(NodeFFI::from_clam(root));
-        }
-        debug!("{:?}", name);
-        let choice = name.pop();
-        if let Some([left, right]) = root.children() {
-            if choice.unwrap() == '0' {
-                return Self::get_node_data_helper(left, name);
-            } else if choice.unwrap() == '1' {
-                return Self::get_node_data_helper(right, name);
-            }
-        } else {
-            return Err("node not found - no children available".to_string());
-        }
-
-        return Err("node not found".to_string());
-    }
-    pub fn get_node_data(&self, name: String) -> Result<NodeFFI, String> {
-        if let Some(node) = self.clam_root.clone() {
-            let node = node.as_ref().borrow();
-            return Self::get_node_data_helper(&node, name);
-        }
-        debug!("root not built");
-        return Err("root not built".to_string());
-    }
-
-    pub fn get_node_data2(&self, path: String) -> Result<NodeData2, String> {
+    pub fn get_node_data(&self, path: String) -> Result<NodeData2, String> {
         if let Some(root) = self.clam_root.clone() {
             let root = root.as_ref().borrow();
             // debug!(
@@ -205,7 +147,7 @@ impl<'a> Handle<'a> {
             path.pop();
 
             debug!("path binary {}", path);
-            let out = Self::get_node_data_helper2(
+            let out = Self::get_node_data_helper(
                 &root,
                 // clam_helpers:: unity_node.id.as_string().chars().rev().collect(),
                 path,
@@ -217,22 +159,16 @@ impl<'a> Handle<'a> {
         return Err("root not built".to_string());
     }
 
-    pub fn get_node_data_helper2(root: &Clusterf32, mut path: String) -> Result<NodeData2, String> {
+    pub fn get_node_data_helper(root: &Clusterf32, mut path: String) -> Result<NodeData2, String> {
         if path.len() == 0 {
-            // unity_node.set_from_clam(root);
-            // unity_node.cardinality = root.cardinality() as i32;
-            // unity_node.depth = root.depth() as i32;
-            // unity_node.arg_center = root.arg_center() as i32;
-            // unity_node.arg_radius = root.arg_radius() as i32;
             return Ok(NodeData2::from_clam(root));
         }
-        // debug!("{:?}", name);
         let choice: char = path.pop().unwrap();
         if let Some([left, right]) = root.children() {
             if choice == '0' {
-                return Self::get_node_data_helper2(left, path);
+                return Self::get_node_data_helper(left, path);
             } else if choice == '1' {
-                return Self::get_node_data_helper2(right, path);
+                return Self::get_node_data_helper(right, path);
             }
         } else {
             return Err("node not found - no children available".to_string());
@@ -241,7 +177,7 @@ impl<'a> Handle<'a> {
         return Err("node not found".to_string());
     }
 
-    pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {
+    pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
         if let Some(root) = &self.clam_root {
             if let Some(labels) = &self.labels {
                 let layout_root =
@@ -257,7 +193,7 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> i32 {
+    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> i32 {
         if let Some(_) = root.clone() {
             Self::reingoldify_helper(root.clone(), node_visitor);
 
@@ -266,58 +202,15 @@ impl<'a> Handle<'a> {
         return -1;
     }
 
-    fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> () {
-        if let Some(node) = root {
-            let baton = NodeFFI::from_reingold_node(&node.as_ref().borrow()).to_ptr();
-
-            node_visitor(baton);
-            unsafe {
-                NodeFFI::from_ptr(baton).free_ids();
-            }
-
-            Self::reingoldify_helper(node.as_ref().borrow().get_left_child(), node_visitor);
-            Self::reingoldify_helper(node.as_ref().borrow().get_right_child(), node_visitor);
-        }
-    }
-
-    pub fn create_reingold_layout2(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
-        if let Some(root) = &self.clam_root {
-            if let Some(labels) = &self.labels {
-                let layout_root =
-                    reingold_impl::Node::init_draw_tree(&root.as_ref().borrow(), labels);
-
-                let result = Self::reingoldify2(layout_root, node_visitor);
-                return result;
-            } else {
-                return -3;
-            }
-        } else {
-            return -4;
-        }
-    }
-
-    pub fn reingoldify2(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> i32 {
-        if let Some(_) = root.clone() {
-            Self::reingoldify_helper2(root.clone(), node_visitor);
-
-            return 1;
-        }
-        return -1;
-    }
-
-    fn reingoldify_helper2(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> () {
+    fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> () {
         if let Some(node) = root {
             let mut baton = NodeData2::from_reingold_node(&node.as_ref().borrow());
 
             node_visitor(Some(&baton));
-            // unsafe {
-            //     NodeFFI::from_ptr(baton).free_ids();
-            // }
-
             baton.free_ids();
 
-            Self::reingoldify_helper2(node.as_ref().borrow().get_left_child(), node_visitor);
-            Self::reingoldify_helper2(node.as_ref().borrow().get_right_child(), node_visitor);
+            Self::reingoldify_helper(node.as_ref().borrow().get_left_child(), node_visitor);
+            Self::reingoldify_helper(node.as_ref().borrow().get_right_child(), node_visitor);
         }
     }
 }
