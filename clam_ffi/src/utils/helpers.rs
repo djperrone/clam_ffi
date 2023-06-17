@@ -28,3 +28,34 @@ pub unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<
         Err(_) => Err(String::from("invalid csharp_to_rust_utf8 conversion")),
     }
 }
+
+pub fn hex_to_binary(hex_string: String) -> String {
+    let mut binary_string = String::new();
+
+    for hex_char in hex_string.chars() {
+        match hex_char {
+            '0' => binary_string.push_str("0000"),
+            '1' => binary_string.push_str("0001"),
+            '2' => binary_string.push_str("0010"),
+            '3' => binary_string.push_str("0011"),
+            '4' => binary_string.push_str("0100"),
+            '5' => binary_string.push_str("0101"),
+            '6' => binary_string.push_str("0110"),
+            '7' => binary_string.push_str("0111"),
+            '8' => binary_string.push_str("1000"),
+            '9' => binary_string.push_str("1001"),
+            'A' | 'a' => binary_string.push_str("1010"),
+            'B' | 'b' => binary_string.push_str("1011"),
+            'C' | 'c' => binary_string.push_str("1100"),
+            'D' | 'd' => binary_string.push_str("1101"),
+            'E' | 'e' => binary_string.push_str("1110"),
+            'F' | 'f' => binary_string.push_str("1111"),
+            _ => {
+                // Handle invalid characters here if desired
+                // For simplicity, we'll skip invalid characters
+            }
+        }
+    }
+
+    binary_string
+}

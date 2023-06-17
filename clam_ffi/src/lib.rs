@@ -77,6 +77,54 @@ pub unsafe extern "C" fn test_node_rust_alloc(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn test_string_struct_complex(
+    incoming: Option<&NodeData2>,
+    outgoing: Option<&mut NodeData2>,
+) {
+    // let mystr = helpers::alloc_to_c_char("hello123".to_string());
+    // let ffi_string = StringStruct1::new("hello123".to_string());
+    if let Some(in_data) = incoming {
+        if let Some(out_data) = outgoing {
+            *out_data = *in_data;
+            // out_data.id = StringFFI::new("hello123".to_string());
+            // out_data.my_str.utf8_str = helpers::alloc_to_c_char("hello123".to_string()) as *mut u8;
+            let some_str = helpers::csharp_to_rust_utf8(in_data.id.data, in_data.id.len);
+            debug!("string struct test 123 {:?}", *out_data.id.data);
+            debug!("string struct test 1234 {:?}", out_data.id.as_string());
+            debug!("string struct test 123 x {:?}", out_data.pos.x);
+            debug!("string struct test 123 str {:?}", some_str);
+            // helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
+            // std::mem::forget(out_data.my_str);
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn test_string_struct2(
+    incoming: Option<&ComplexStruct>,
+    outgoing: Option<&mut ComplexStruct>,
+) -> () {
+    if let Some(in_struct) = incoming {
+        // let some_str =
+        //     helpers::csharp_to_rust_utf8(in_struct.my_str.utf8_str, in_struct.my_str.utf8_len);
+
+        // debug!("start string struct test ");
+
+        // let ss = StringStruct2::new(in_struct);
+        let tests = "test".to_string();
+        let mut test = *in_struct.my_str.utf8_str;
+        *(in_struct.my_str.utf8_str.add(1)) = 107;
+        let mut i = 0 as usize;
+        for ch in tests.chars() {
+            *(in_struct.my_str.utf8_str.add(i as usize)) = ch as u8;
+            i += 1;
+        }
+        // debug!("string struct test {:?}", some_str);
+        debug!("string struct test {:?}", *in_struct.my_str.utf8_str)
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn test_node_rust_alloc2(
     context: Option<&mut Handle>,
     visitor: CBFnNodeVistor2,
@@ -134,31 +182,6 @@ pub extern "C" fn free_string2(
             debug!("string struct test 123 {:?}", out_data.my_str.utf8_str);
             helpers::free_c_char(out_data.my_str.utf8_str as *mut i8);
         }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn test_string_struct2(
-    incoming: Option<&ComplexStruct>,
-    outgoing: Option<&mut ComplexStruct>,
-) -> () {
-    if let Some(in_struct) = incoming {
-        let some_str =
-            helpers::csharp_to_rust_utf8(in_struct.my_str.utf8_str, in_struct.my_str.utf8_len);
-
-        // debug!("start string struct test ");
-
-        // let ss = StringStruct2::new(in_struct);
-        let tests = "test".to_string();
-        let mut test = *in_struct.my_str.utf8_str;
-        *(in_struct.my_str.utf8_str.add(1)) = 107;
-        let mut i = 0 as usize;
-        for ch in tests.chars() {
-            *(in_struct.my_str.utf8_str.add(i as usize)) = ch as u8;
-            i += 1;
-        }
-        debug!("string struct test {:?}", some_str);
-        debug!("string struct test {:?}", *in_struct.my_str.utf8_str)
     }
 }
 
@@ -244,6 +267,49 @@ pub unsafe extern "C" fn get_node_data(
                 }
                 debug!("get_node data3 went wrong1");
                 return;
+            }
+
+            debug!("get_node data3 went wrong2");
+            return;
+        }
+        debug!("get_node data3 went wrong3");
+        return;
+    }
+    debug!("get_node data3 went wrong4");
+    return;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_node_data2(
+    context: Option<&mut Handle>,
+    incoming: Option<&NodeData2>,
+    outgoing: Option<&mut NodeData2>,
+) -> () {
+    if let Some(handle) = context {
+        if let Some(in_node) = incoming {
+            if let Some(mut out_node) = outgoing {
+                // Node::NodeData node_data
+                *out_node = *in_node;
+
+                debug!(
+                    "name searched for in rust {}",
+                    out_node.id.as_string().unwrap()
+                );
+
+                match handle.get_node_data2(out_node.id.as_string().unwrap()) {
+                    Ok(mut data) => {
+                        out_node.cardinality = data.cardinality;
+                        out_node.arg_center = data.arg_center;
+                        out_node.arg_radius = data.arg_radius;
+                        out_node.depth = data.depth;
+                        data.free_ids();
+                        return;
+                    }
+                    Err(e) => {
+                        debug!("{}", e);
+                        return;
+                    }
+                }
             }
 
             debug!("get_node data3 went wrong2");
@@ -365,7 +431,7 @@ pub unsafe extern "C" fn traverse_tree_df(ptr: *mut Handle, node_visitor: CBFnNo
 #[no_mangle]
 pub unsafe extern "C" fn traverse_tree_df2(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
     if !ptr.is_null() {
-        // return Handle::from_ptr(ptr).traverse_tree_df2(node_visitor);
+        return Handle::from_ptr(ptr).traverse_tree_df2(node_visitor);
     }
 
     return 0;
@@ -378,6 +444,18 @@ pub unsafe extern "C" fn create_reingold_layout(
 ) -> i32 {
     if !ptr.is_null() {
         return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
+    }
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn create_reingold_layout2(
+    ptr: *mut Handle,
+    node_visitor: CBFnNodeVistor2,
+) -> i32 {
+    if !ptr.is_null() {
+        return Handle::from_ptr(ptr).create_reingold_layout2(node_visitor);
     }
 
     return 0;

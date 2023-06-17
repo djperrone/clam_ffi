@@ -6,7 +6,7 @@
 
 use std::{cell::RefCell, ffi::c_char, ptr::null_mut, rc::Rc};
 
-use crate::utils::helpers;
+use crate::{debug, utils::helpers};
 
 use super::{
     // glam,
@@ -62,14 +62,19 @@ impl NodeData2 {
             }
         };
         if self.id.is_empty() {
+            debug!("warning unity struct was sent with null id");
             self.id = StringFFI::new(node.name());
         }
 
         if self.left_id.is_empty() {
+            debug!("warning unity struct was sent with null lid");
+
             self.left_id = StringFFI::new(left_id);
         }
 
         if self.right_id.is_empty() {
+            debug!("warning unity struct was sent with null rid");
+
             self.right_id = StringFFI::new(right_id);
         }
 
@@ -117,10 +122,31 @@ impl NodeData2 {
         }
     }
 
+    pub fn from_reingold_node(other: &reingold_impl::Node) -> Self {
+        let (left, right) = other.get_child_names();
+        NodeData2 {
+            pos: glam::Vec3::new(other.get_x(), other.get_y(), 0.),
+            color: glam::Vec3::new(
+                other.get_color().x,
+                other.get_color().y,
+                other.get_color().z,
+            ),
+            id: StringFFI::new(other.get_name()),
+            left_id: StringFFI::new(left),
+            right_id: StringFFI::new(right),
+            cardinality: -1,
+            depth: -1,
+            arg_center: -1,
+            arg_radius: -1,
+        }
+    }
     pub fn free_ids(&mut self) {
-        helpers::free_string(self.id.as_mut_ptr());
-        helpers::free_string(self.left_id.as_mut_ptr());
-        helpers::free_string(self.right_id.as_mut_ptr());
+        // helpers::free_string(self.id.as_mut_ptr());
+        // helpers::free_string(self.left_id.as_mut_ptr());
+        // helpers::free_string(self.right_id.as_mut_ptr());
+        self.id.free();
+        self.left_id.free();
+        self.right_id.free();
     }
 }
 
@@ -129,6 +155,7 @@ impl NodeData2 {
 pub struct StringFFI {
     pub data: *mut u8,
     pub len: i32,
+    pub is_owned_by_unity: bool,
 }
 
 impl StringFFI {
@@ -136,11 +163,13 @@ impl StringFFI {
         StringFFI {
             data: helpers::alloc_to_c_char(data.clone()) as *mut u8,
             len: data.len() as i32,
+            is_owned_by_unity: false,
         }
     }
 
-    pub fn as_string(&self) -> String {
-        return format!("{:?}", self.data);
+    pub unsafe fn as_string(&self) -> Result<String, String> {
+        return helpers::csharp_to_rust_utf8(self.data, self.len);
+        // return format!("{:?}", self.data);
     }
 
     pub fn as_ptr(&self) -> *const u8 {
@@ -154,6 +183,11 @@ impl StringFFI {
 
     pub fn is_empty(&self) -> bool {
         return self.data.is_null();
+    }
+
+    pub fn free(&mut self) {
+        helpers::free_string(self.data);
+        self.len = 0;
     }
 }
 
@@ -328,6 +362,7 @@ impl NodeFFI {
         }
     }
     pub fn free_ids(&mut self) {
+        debug!("node freeing ids");
         if self.id != null_mut() {
             helpers::free_c_char(self.id);
         }
