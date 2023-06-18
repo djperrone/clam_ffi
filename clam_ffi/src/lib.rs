@@ -1,59 +1,89 @@
 //need to use partial struct to pass by reference and access sub structs
 // pass by pointer with classes but cant seem to access sub structs
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    ffi::{c_char, CStr, CString},
+    rc::Rc,
+};
 mod core;
 mod ffi_impl;
 mod tests;
 mod utils;
 use ffi_impl::{
-    handle::Handle,
+    handle::{Clusterf32, Handle},
     node::{NodeData, StringFFI},
 };
 use utils::helpers;
 type CBFnNodeVistor2 = extern "C" fn(Option<&NodeData>) -> ();
 
+// #[no_mangle]
+// pub unsafe extern "C" fn find_node(
+//     context: Option<&mut Handle>,
+//     incoming: Option<&NodeData>,
+//     outgoing: Option<&mut NodeData>,
+// ) -> bool {
+//     if let Some(handle) = context {
+//         if let Some(in_node) = incoming {
+//             if let Some(mut out_node) = outgoing {
+//                 *out_node = *in_node;
+
+//                 match handle.find_node(out_node.id.as_string().unwrap()) {
+//                     Ok(mut data) => {
+//                         out_node.cardinality = data.cardinality;
+//                         out_node.arg_center = data.arg_center;
+//                         out_node.arg_radius = data.arg_radius;
+//                         out_node.depth = data.depth;
+//                         data.free_ids();
+//                         return true;
+//                     }
+//                     Err(e) => {
+//                         debug!("{}", e);
+//                         return false;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     debug!("could not find node {}");
+//     return false;
+// }
+
 #[no_mangle]
-pub unsafe extern "C" fn get_node_data(
+pub unsafe extern "C" fn get_cluster_data(
     context: Option<&mut Handle>,
     incoming: Option<&NodeData>,
     outgoing: Option<&mut NodeData>,
-) -> () {
+) -> bool {
     if let Some(handle) = context {
         if let Some(in_node) = incoming {
             if let Some(mut out_node) = outgoing {
-                // Node::NodeData node_data
                 *out_node = *in_node;
 
-                debug!(
-                    "name searched for in rust {}",
-                    out_node.id.as_string().unwrap()
-                );
-
-                match handle.get_node_data(out_node.id.as_string().unwrap()) {
-                    Ok(mut data) => {
-                        out_node.cardinality = data.cardinality;
-                        out_node.arg_center = data.arg_center;
-                        out_node.arg_radius = data.arg_radius;
-                        out_node.depth = data.depth;
-                        data.free_ids();
-                        return;
-                    }
+                match out_node.id.as_string() {
+                    Ok(path) => match handle.find_node(path) {
+                        Ok(cluster_data) => {
+                            // ---- set from clam ---
+                            // out_node.cardinality = cluster_data.cardinality() as i32;
+                            // out_node.arg_center = cluster_data.arg_center() as i32;
+                            // out_node.arg_radius = cluster_data.arg_radius() as i32;
+                            // out_node.depth = cluster_data.depth() as i32;
+                            out_node.set_from_clam(&cluster_data);
+                        }
+                        Err(e) => {
+                            debug!("{}", e);
+                            return false;
+                        }
+                    },
                     Err(e) => {
                         debug!("{}", e);
-                        return;
+                        return false;
                     }
                 }
             }
-
-            debug!("get_node data3 went wrong2");
-            return;
         }
-        debug!("get_node data3 went wrong3");
-        return;
     }
-    debug!("get_node data3 went wrong4");
-    return;
+    return false;
 }
 
 #[no_mangle]
@@ -86,8 +116,6 @@ pub unsafe extern "C" fn init_clam(
             return 0;
         }
     };
-
-    // hello_world();
 
     match init_clam_helper(&data_name, cardinality) {
         Ok(handle) => {
@@ -143,9 +171,22 @@ unsafe fn init_clam_helper<'a>(
 }
 
 #[no_mangle]
-pub extern "C" fn traverse_tree_df(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
+pub extern "C" fn for_each_dft(
+    ptr: *mut Handle,
+    node_visitor: CBFnNodeVistor2,
+    start_node: *const c_char,
+) -> i32 {
     if !ptr.is_null() {
-        return Handle::from_ptr(ptr).traverse_tree_df2(node_visitor);
+        if !start_node.is_null() {
+            let c_str = unsafe {
+                // assert!(!start_node.is_null());
+
+                CStr::from_ptr(start_node)
+            };
+            let r_str = c_str.to_str().unwrap();
+
+            return Handle::from_ptr(ptr).for_each_dft(node_visitor, r_str.to_string());
+        }
     }
 
     return 0;

@@ -4,6 +4,7 @@ use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
 use std::cell::RefCell;
+use std::ffi::CString;
 use std::mem::transmute;
 use std::rc::Rc;
 
@@ -81,16 +82,24 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn traverse_tree_df2(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
+    pub fn for_each_dft(
+        &mut self,
+        node_visitor: crate::CBFnNodeVistor2,
+        start_node: String,
+    ) -> i32 {
         if let Some(root) = &self.clam_root {
-            let node = root.as_ref().borrow();
-            Self::traverse_tree_df_helper2(&node, node_visitor);
-            return 1;
+            if start_node == "root" {
+                let node = root.as_ref().borrow();
+                Self::for_each_dft_helper(&node, node_visitor);
+                return 1;
+            } else {
+                //let start_node = find for fucks sake; but no lifetimes existl
+            }
         }
         return 0;
     }
 
-    fn traverse_tree_df_helper2(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor2) {
+    fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor2) {
         if root.is_leaf() {
             let mut baton = NodeData::from_clam(&root);
 
@@ -103,13 +112,10 @@ impl<'a> Handle<'a> {
 
             node_visitor(Some(&baton));
 
-            // unsafe {
-            //     Box::from_raw(baton).free_ids();
-            // }
             baton.free_ids();
 
-            Self::traverse_tree_df_helper2(left, node_visitor);
-            Self::traverse_tree_df_helper2(right, node_visitor);
+            Self::for_each_dft_helper(left, node_visitor);
+            Self::for_each_dft_helper(right, node_visitor);
         }
     }
 
@@ -131,14 +137,18 @@ impl<'a> Handle<'a> {
         &self.clam_root
     }
 
-    pub fn get_node_data(&self, path: String) -> Result<NodeData, String> {
+    pub unsafe fn test_find(&self) -> &'a Clusterf32<'a> {
         if let Some(root) = self.clam_root.clone() {
-            let root = root.as_ref().borrow();
-            // debug!(
-            //     "searching for (node name in hex): {}",
-            //     // unity_node.id.as_string()
-            // );
-            debug!("path here {}", path);
+            if let Some([left, right]) = root.as_ptr().as_mut().unwrap().children() {
+                return left;
+            } else {
+            }
+        }
+        panic!();
+    }
+
+    pub unsafe fn find_node(&self, path: String) -> Result<&'a Clusterf32<'a>, String> {
+        if let Some(root) = self.clam_root.clone() {
             let mut path: String = helpers::hex_to_binary(path)
                 .trim_start_matches('0')
                 .chars()
@@ -146,36 +156,76 @@ impl<'a> Handle<'a> {
                 .collect();
             path.pop();
 
-            debug!("path binary {}", path);
-            let out = Self::get_node_data_helper(
-                &root,
-                // clam_helpers:: unity_node.id.as_string().chars().rev().collect(),
-                path,
-            );
-
-            return out;
+            return Self::find_node_helper(root.as_ptr().as_mut().unwrap(), path);
         }
         debug!("root not built");
         return Err("root not built".to_string());
     }
 
-    pub fn get_node_data_helper(root: &Clusterf32, mut path: String) -> Result<NodeData, String> {
+    pub fn find_node_helper(
+        root: &'a Clusterf32,
+        mut path: String,
+    ) -> Result<&'a Clusterf32<'a>, String> {
         if path.len() == 0 {
-            return Ok(NodeData::from_clam(root));
+            return Ok(&root);
         }
         let choice: char = path.pop().unwrap();
         if let Some([left, right]) = root.children() {
             if choice == '0' {
-                return Self::get_node_data_helper(left, path);
+                return Self::find_node_helper(left, path);
             } else if choice == '1' {
-                return Self::get_node_data_helper(right, path);
+                return Self::find_node_helper(right, path);
+            } else {
+                return Err("invalid character in node name".to_string());
             }
         } else {
             return Err("node not found - no children available".to_string());
         }
-
-        return Err("node not found".to_string());
     }
+
+    // pub fn find_node(&self, path: String) -> Result<NodeData, String> {
+    //     if let Some(root) = self.clam_root.clone() {
+    //         let root = root.as_ref().borrow();
+    //         // debug!(
+    //         //     "searching for (node name in hex): {}",
+    //         //     // unity_node.id.as_string()
+    //         // );
+    //         let mut path: String = helpers::hex_to_binary(path)
+    //             .trim_start_matches('0')
+    //             .chars()
+    //             .rev()
+    //             .collect();
+    //         path.pop();
+
+    //         let out = Self::find_node_helper(
+    //             &root,
+    //             // clam_helpers:: unity_node.id.as_string().chars().rev().collect(),
+    //             path,
+    //         );
+
+    //         return out;
+    //     }
+    //     debug!("root not built");
+    //     return Err("root not built".to_string());
+    // }
+
+    // pub fn find_node_helper(root: &Clusterf32, mut path: String) -> Result<NodeData, String> {
+    //     if path.len() == 0 {
+    //         return Ok(NodeData::from_clam(root));
+    //     }
+    //     let choice: char = path.pop().unwrap();
+    //     if let Some([left, right]) = root.children() {
+    //         if choice == '0' {
+    //             return Self::find_node_helper(left, path);
+    //         } else if choice == '1' {
+    //             return Self::find_node_helper(right, path);
+    //         } else {
+    //             return Err("invalid character in node name".to_string());
+    //         }
+    //     } else {
+    //         return Err("node not found - no children available".to_string());
+    //     }
+    // }
 
     pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
         if let Some(root) = &self.clam_root {
