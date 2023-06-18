@@ -11,7 +11,7 @@ use crate::utils::{anomaly_readers, distances, helpers};
 
 use crate::debug;
 
-use super::node::NodeData2;
+use super::node::NodeData;
 use super::reingold_impl::{self};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
@@ -92,14 +92,14 @@ impl<'a> Handle<'a> {
 
     fn traverse_tree_df_helper2(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor2) {
         if root.is_leaf() {
-            let mut baton = NodeData2::from_clam(&root);
+            let mut baton = NodeData::from_clam(&root);
 
             node_visitor(Some(&baton));
             baton.free_ids();
             return;
         }
         if let Some([left, right]) = root.children() {
-            let mut baton = NodeData2::from_clam(&root);
+            let mut baton = NodeData::from_clam(&root);
 
             node_visitor(Some(&baton));
 
@@ -131,7 +131,7 @@ impl<'a> Handle<'a> {
         &self.clam_root
     }
 
-    pub fn get_node_data(&self, path: String) -> Result<NodeData2, String> {
+    pub fn get_node_data(&self, path: String) -> Result<NodeData, String> {
         if let Some(root) = self.clam_root.clone() {
             let root = root.as_ref().borrow();
             // debug!(
@@ -159,9 +159,9 @@ impl<'a> Handle<'a> {
         return Err("root not built".to_string());
     }
 
-    pub fn get_node_data_helper(root: &Clusterf32, mut path: String) -> Result<NodeData2, String> {
+    pub fn get_node_data_helper(root: &Clusterf32, mut path: String) -> Result<NodeData, String> {
         if path.len() == 0 {
-            return Ok(NodeData2::from_clam(root));
+            return Ok(NodeData::from_clam(root));
         }
         let choice: char = path.pop().unwrap();
         if let Some([left, right]) = root.children() {
@@ -204,7 +204,7 @@ impl<'a> Handle<'a> {
 
     fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> () {
         if let Some(node) = root {
-            let mut baton = NodeData2::from_reingold_node(&node.as_ref().borrow());
+            let mut baton = NodeData::from_reingold_node(&node.as_ref().borrow());
 
             node_visitor(Some(&baton));
             baton.free_ids();

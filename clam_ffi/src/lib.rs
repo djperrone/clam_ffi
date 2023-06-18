@@ -8,16 +8,16 @@ mod tests;
 mod utils;
 use ffi_impl::{
     handle::Handle,
-    node::{NodeData2, StringFFI},
+    node::{NodeData, StringFFI},
 };
 use utils::helpers;
-type CBFnNodeVistor2 = extern "C" fn(Option<&NodeData2>) -> ();
+type CBFnNodeVistor2 = extern "C" fn(Option<&NodeData>) -> ();
 
 #[no_mangle]
 pub unsafe extern "C" fn get_node_data(
     context: Option<&mut Handle>,
-    incoming: Option<&NodeData2>,
-    outgoing: Option<&mut NodeData2>,
+    incoming: Option<&NodeData>,
+    outgoing: Option<&mut NodeData>,
 ) -> () {
     if let Some(handle) = context {
         if let Some(in_node) = incoming {
@@ -143,7 +143,7 @@ unsafe fn init_clam_helper<'a>(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn traverse_tree_df2(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
+pub extern "C" fn traverse_tree_df(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
     if !ptr.is_null() {
         return Handle::from_ptr(ptr).traverse_tree_df2(node_visitor);
     }
@@ -152,10 +152,7 @@ pub unsafe extern "C" fn traverse_tree_df2(ptr: *mut Handle, node_visitor: CBFnN
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn create_reingold_layout2(
-    ptr: *mut Handle,
-    node_visitor: CBFnNodeVistor2,
-) -> i32 {
+pub extern "C" fn create_reingold_layout(ptr: *mut Handle, node_visitor: CBFnNodeVistor2) -> i32 {
     if !ptr.is_null() {
         return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
     }

@@ -14,7 +14,7 @@ use super::{
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct NodeData2 {
+pub struct NodeData {
     pub pos: glam::Vec3,
     pub color: glam::Vec3,
 
@@ -28,9 +28,9 @@ pub struct NodeData2 {
     pub arg_radius: i32,
 }
 
-impl NodeData2 {
+impl NodeData {
     pub fn new(id: String) -> Self {
-        NodeData2 {
+        NodeData {
             id: StringFFI::new(id),
             color: glam::Vec3::new(0., 0., 0.),
             pos: glam::Vec3::new(0., 0., 0.),
@@ -87,11 +87,11 @@ impl NodeData2 {
             if let Some([left, right]) = node.children() {
                 (left.name(), right.name())
             } else {
-                ("default".to_string(), "default".to_string())
+                ("None".to_string(), "None".to_string())
             }
         };
 
-        NodeData2 {
+        NodeData {
             pos: glam::Vec3::new(0., 0., 0.),
             color: glam::Vec3::new(0., 0., 0.),
             id: (StringFFI::new(node.name())),
@@ -106,7 +106,7 @@ impl NodeData2 {
 
     pub fn from_reingold_node(other: &reingold_impl::Node) -> Self {
         let (left, right) = other.get_child_names();
-        NodeData2 {
+        NodeData {
             pos: glam::Vec3::new(other.get_x(), other.get_y(), 0.),
             color: glam::Vec3::new(
                 other.get_color().x,

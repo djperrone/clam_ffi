@@ -51,8 +51,7 @@ pub fn hex_to_binary(hex_string: String) -> String {
             'E' | 'e' => binary_string.push_str("1110"),
             'F' | 'f' => binary_string.push_str("1111"),
             _ => {
-                // Handle invalid characters here if desired
-                // For simplicity, we'll skip invalid characters
+                
             }
         }
     }

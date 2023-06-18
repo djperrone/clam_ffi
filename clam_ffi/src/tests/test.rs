@@ -6,7 +6,7 @@ use std::ffi::{c_char, CStr};
 use crate::ffi_impl::handle::Handle;
 use crate::{debug, CBFnNodeVistor2};
 use crate::{
-    ffi_impl::node::{NodeData2, StringFFI},
+    ffi_impl::node::{NodeData, StringFFI},
     utils::helpers,
 };
 
@@ -49,8 +49,8 @@ impl StringStruct2 {
 
 #[no_mangle]
 pub unsafe extern "C" fn test_node_rust_alloc(
-    incoming: Option<&NodeData2>,
-    outgoing: Option<&mut NodeData2>,
+    incoming: Option<&NodeData>,
+    outgoing: Option<&mut NodeData>,
 ) {
     // let mystr = helpers::alloc_to_c_char("hello123".to_string());
     // let ffi_string = StringStruct1::new("hello123".to_string());
@@ -69,8 +69,8 @@ pub unsafe extern "C" fn test_node_rust_alloc(
 
 #[no_mangle]
 pub unsafe extern "C" fn test_string_struct_complex(
-    incoming: Option<&NodeData2>,
-    outgoing: Option<&mut NodeData2>,
+    incoming: Option<&NodeData>,
+    outgoing: Option<&mut NodeData>,
 ) {
     // let mystr = helpers::alloc_to_c_char("hello123".to_string());
     // let ffi_string = StringStruct1::new("hello123".to_string());
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn test_node_rust_alloc2(
         //     // std::mem::forget(out_data.my_str);
         // }
 
-        let data = NodeData2::from_clam(&handle.get_root().as_ref().unwrap().as_ref().borrow());
+        let data = NodeData::from_clam(&handle.get_root().as_ref().unwrap().as_ref().borrow());
         visitor(Some(&data));
     }
 }
