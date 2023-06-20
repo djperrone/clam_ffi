@@ -4,7 +4,6 @@ use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
 use std::cell::RefCell;
-use std::ffi::CString;
 use std::mem::transmute;
 use std::rc::Rc;
 
@@ -82,9 +81,9 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn for_each_dft(
+    pub unsafe fn for_each_dft(
         &mut self,
-        node_visitor: crate::CBFnNodeVistor2,
+        node_visitor: crate::CBFnNodeVistor,
         start_node: String,
     ) -> i32 {
         if let Some(root) = &self.clam_root {
@@ -93,13 +92,20 @@ impl<'a> Handle<'a> {
                 Self::for_each_dft_helper(&node, node_visitor);
                 return 1;
             } else {
-                //let start_node = find for fucks sake; but no lifetimes existl
+                match Self::find_node(&self, start_node) {
+                    Ok(root) => {
+                        Self::for_each_dft_helper(root, node_visitor);
+                    }
+                    Err(e) => {
+                        debug!("{}", e);
+                    }
+                }
             }
         }
         return 0;
     }
 
-    fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor2) {
+    fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor) {
         if root.is_leaf() {
             let mut baton = NodeData::from_clam(&root);
 
@@ -135,16 +141,6 @@ impl<'a> Handle<'a> {
 
     pub fn get_root(&self) -> &Option<Rc<RefCell<Clusterf32<'a>>>> {
         &self.clam_root
-    }
-
-    pub unsafe fn test_find(&self) -> &'a Clusterf32<'a> {
-        if let Some(root) = self.clam_root.clone() {
-            if let Some([left, right]) = root.as_ptr().as_mut().unwrap().children() {
-                return left;
-            } else {
-            }
-        }
-        panic!();
     }
 
     pub unsafe fn find_node(&self, path: String) -> Result<&'a Clusterf32<'a>, String> {
@@ -227,7 +223,7 @@ impl<'a> Handle<'a> {
     //     }
     // }
 
-    pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor2) -> i32 {
+    pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {
         if let Some(root) = &self.clam_root {
             if let Some(labels) = &self.labels {
                 let layout_root =
@@ -243,7 +239,7 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> i32 {
+    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> i32 {
         if let Some(_) = root.clone() {
             Self::reingoldify_helper(root.clone(), node_visitor);
 
@@ -252,7 +248,7 @@ impl<'a> Handle<'a> {
         return -1;
     }
 
-    fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor2) -> () {
+    fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> () {
         if let Some(node) = root {
             let mut baton = NodeData::from_reingold_node(&node.as_ref().borrow());
 

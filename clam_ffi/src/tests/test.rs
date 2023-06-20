@@ -4,7 +4,7 @@
 use std::ffi::{c_char, CStr};
 
 use crate::ffi_impl::handle::Handle;
-use crate::{debug, CBFnNodeVistor2};
+use crate::{debug, CBFnNodeVistor};
 use crate::{
     ffi_impl::node::{NodeData, StringFFI},
     utils::helpers,
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn test_string_struct2(
 #[no_mangle]
 pub unsafe extern "C" fn test_node_rust_alloc2(
     context: Option<&mut Handle>,
-    visitor: CBFnNodeVistor2,
+    visitor: CBFnNodeVistor,
 ) {
     // let mystr = helpers::alloc_to_c_char("hello123".to_string());
     // let ffi_string = StringStruct1::new("hello123".to_string());
