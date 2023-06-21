@@ -3,26 +3,50 @@ extern crate nalgebra as na;
 use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
+use std::ffi;
 use std::mem::transmute;
 use std::rc::Rc;
 
+use crate::utils::error::FFIError;
 use crate::utils::{anomaly_readers, distances, helpers};
 
-use crate::debug;
+use crate::{debug, InHandlePtr};
 
 use super::node::NodeData;
 use super::reingold_impl::{self};
+
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
+
+pub struct Droppable {
+    num: i32,
+}
+
+impl Drop for Droppable {
+    fn drop(&mut self) {
+        debug!("Dropping drroppable");
+    }
+}
 
 pub struct Handle<'a> {
     clam_root: Option<Rc<RefCell<Clusterf32<'a>>>>,
     dataset: Option<DataSet<'a>>,
     labels: Option<Vec<u8>>,
+    // droppable: Option<Droppable>,
 }
-
+impl<'a> Drop for Handle<'a> {
+    fn drop(&mut self) {
+        debug!("DroppingHandle");
+    }
+}
 impl<'a> Handle<'a> {
+    pub fn shutdown(&mut self) {
+        self.clam_root = None;
+        self.dataset = None;
+        self.labels = None;
+    }
+
     pub fn to_ptr(self) -> *mut Handle<'a> {
         unsafe { transmute(Box::new(self)) }
     }
@@ -30,11 +54,22 @@ impl<'a> Handle<'a> {
     pub fn from_ptr(ptr: *mut Handle) -> &'a mut Handle {
         unsafe { &mut *ptr }
     }
+
+    // pub unsafe fn from_smart_ptr(ptr: InHandlePtr) -> Result<RefMut<Handle<'a>>, FFIError> {
+    //     // unsafe { &mut *ptr }
+
+    //     if let Some(handle) = ptr {
+    //         return Ok(handle);
+    //     }
+
+    //     return Err(FFIError::NullPointerPassed);
+    // }
     pub fn default() -> Self {
         Handle {
             clam_root: None,
             dataset: None,
             labels: None,
+            // droppable: Some(Droppable { num: 5 }),
         }
     }
     fn create_dataset(data_name: &str) -> Result<(DataSet, Vec<u8>), String> {
@@ -82,27 +117,30 @@ impl<'a> Handle<'a> {
     }
 
     pub unsafe fn for_each_dft(
-        &mut self,
+        &self,
         node_visitor: crate::CBFnNodeVistor,
         start_node: String,
-    ) -> i32 {
+    ) -> FFIError {
         if let Some(root) = &self.clam_root {
             if start_node == "root" {
                 let node = root.as_ref().borrow();
                 Self::for_each_dft_helper(&node, node_visitor);
-                return 1;
+                return FFIError::Ok;
             } else {
                 match Self::find_node(&self, start_node) {
                     Ok(root) => {
                         Self::for_each_dft_helper(root, node_visitor);
+                        return FFIError::Ok;
                     }
                     Err(e) => {
-                        debug!("{}", e);
+                        debug!("{:?}", e);
+                        return FFIError::InvalidStringPassed;
                     }
                 }
             }
+        } else {
+            return FFIError::NullPointerPassed;
         }
-        return 0;
     }
 
     fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor) {
@@ -143,7 +181,7 @@ impl<'a> Handle<'a> {
         &self.clam_root
     }
 
-    pub unsafe fn find_node(&self, path: String) -> Result<&'a Clusterf32<'a>, String> {
+    pub unsafe fn find_node(&self, path: String) -> Result<&'a Clusterf32<'a>, FFIError> {
         if let Some(root) = self.clam_root.clone() {
             let mut path: String = helpers::hex_to_binary(path)
                 .trim_start_matches('0')
@@ -155,13 +193,13 @@ impl<'a> Handle<'a> {
             return Self::find_node_helper(root.as_ptr().as_mut().unwrap(), path);
         }
         debug!("root not built");
-        return Err("root not built".to_string());
+        return Err(FFIError::HandleInitFailed);
     }
 
     pub fn find_node_helper(
         root: &'a Clusterf32,
         mut path: String,
-    ) -> Result<&'a Clusterf32<'a>, String> {
+    ) -> Result<&'a Clusterf32<'a>, FFIError> {
         if path.len() == 0 {
             return Ok(&root);
         }
@@ -172,10 +210,10 @@ impl<'a> Handle<'a> {
             } else if choice == '1' {
                 return Self::find_node_helper(right, path);
             } else {
-                return Err("invalid character in node name".to_string());
+                return Err(FFIError::InvalidStringPassed);
             }
         } else {
-            return Err("node not found - no children available".to_string());
+            return Err(FFIError::InvalidStringPassed);
         }
     }
 
@@ -223,7 +261,7 @@ impl<'a> Handle<'a> {
     //     }
     // }
 
-    pub fn create_reingold_layout(&mut self, node_visitor: crate::CBFnNodeVistor) -> i32 {
+    pub fn create_reingold_layout(&self, node_visitor: crate::CBFnNodeVistor) -> FFIError {
         if let Some(root) = &self.clam_root {
             if let Some(labels) = &self.labels {
                 let layout_root =
@@ -232,20 +270,20 @@ impl<'a> Handle<'a> {
                 let result = Self::reingoldify(layout_root, node_visitor);
                 return result;
             } else {
-                return -3;
+                return FFIError::HandleInitFailed;
             }
         } else {
-            return -4;
+            return FFIError::HandleInitFailed;
         }
     }
 
-    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> i32 {
+    pub fn reingoldify(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> FFIError {
         if let Some(_) = root.clone() {
             Self::reingoldify_helper(root.clone(), node_visitor);
 
-            return 1;
+            return FFIError::Ok;
         }
-        return -1;
+        return FFIError::NullPointerPassed;
     }
 
     fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVistor) -> () {

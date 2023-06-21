@@ -1,5 +1,7 @@
 use std::ffi::{c_char, CString};
 
+use super::error::FFIError;
+
 pub fn alloc_to_c_char(str: String) -> *mut c_char {
     let str = CString::new(str).unwrap();
     str.into_raw()
@@ -21,11 +23,11 @@ pub fn free_string(str: *mut u8) {
     }
 }
 
-pub unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, String> {
+pub unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, FFIError> {
     let slice = std::slice::from_raw_parts(utf8_str, utf8_len as usize);
     match String::from_utf8(slice.to_vec()) {
         Ok(str) => Ok(str),
-        Err(_) => Err(String::from("invalid csharp_to_rust_utf8 conversion")),
+        Err(_) => Err(FFIError::InvalidStringPassed),
     }
 }
 

@@ -4,7 +4,10 @@
 #![allow(unused_variables)]
 // use glam::Vec3;
 
-use crate::{debug, utils::helpers};
+use crate::{
+    debug,
+    utils::{error::FFIError, helpers},
+};
 
 use super::{
     // glam,
@@ -146,7 +149,7 @@ impl StringFFI {
         }
     }
 
-    pub unsafe fn as_string(&self) -> Result<String, String> {
+    pub unsafe fn as_string(&self) -> Result<String, FFIError> {
         return helpers::csharp_to_rust_utf8(self.data, self.len);
     }
 
