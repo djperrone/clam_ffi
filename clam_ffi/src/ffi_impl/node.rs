@@ -27,6 +27,8 @@ pub struct NodeData {
 
     pub cardinality: i32,
     pub depth: i32,
+    pub radius: f32,
+    pub lfd: f32,
     pub arg_center: i32,
     pub arg_radius: i32,
 }
@@ -41,6 +43,8 @@ impl NodeData {
             right_id: StringFFI::new("default".to_string()),
             cardinality: -1,
             depth: -1,
+            radius: -1.0,
+            lfd: -1.0,
             arg_center: -1,
             arg_radius: -1,
         }
@@ -81,6 +85,8 @@ impl NodeData {
 
         self.cardinality = node.cardinality() as i32;
         self.depth = node.depth() as i32;
+        self.radius = node.radius() as f32;
+        self.lfd = node.lfd() as f32;
         self.arg_center = node.arg_center() as i32;
         self.arg_radius = node.arg_radius() as i32;
     }
@@ -102,6 +108,8 @@ impl NodeData {
             right_id: StringFFI::new(right_id),
             cardinality: (node.cardinality() as i32),
             depth: (node.depth() as i32),
+            radius: node.radius(),
+            lfd: node.lfd() as f32,
             arg_center: (node.arg_center() as i32),
             arg_radius: (node.arg_radius() as i32),
         }
@@ -121,6 +129,8 @@ impl NodeData {
             right_id: StringFFI::new(right),
             cardinality: -1,
             depth: -1,
+            radius: -1.0,
+            lfd: -1.0,
             arg_center: -1,
             arg_radius: -1,
         }

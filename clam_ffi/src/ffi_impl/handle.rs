@@ -3,6 +3,7 @@ extern crate nalgebra as na;
 use clam::core::cluster::Cluster;
 use clam::core::cluster_criteria::PartitionCriteria;
 use clam::core::dataset::VecVec;
+use ndarray::Data;
 use std::cell::{RefCell, RefMut};
 use std::ffi;
 use std::mem::transmute;
@@ -19,6 +20,16 @@ use super::reingold_impl::{self};
 pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
 type DataSet<'a> = VecVec<f32, f32>;
 
+// either leaf node or
+// depth at least 4
+// lfd - btwn 0.5 - 2.5
+// color clusters by radius or lfd
+// draw clusters with lfd value
+
+// noedges btwn parents and children
+// want edges btwn two clustesr whose distbtwn centers <= sum of radius
+// add radius and lfd to display info
+
 pub struct Droppable {
     num: i32,
 }
@@ -29,12 +40,20 @@ impl Drop for Droppable {
     }
 }
 
+//tokio
+pub struct Handle2<'a> {
+    root: &'a Clusterf32<'a>,
+    dataset: &'a DataSet<'a>,
+    labels: &'a [u8],
+}
+
 pub struct Handle<'a> {
     clam_root: Option<Rc<RefCell<Clusterf32<'a>>>>,
     dataset: Option<DataSet<'a>>,
     labels: Option<Vec<u8>>,
     // droppable: Option<Droppable>,
 }
+
 impl<'a> Drop for Handle<'a> {
     fn drop(&mut self) {
         debug!("DroppingHandle");
@@ -93,8 +112,8 @@ impl<'a> Handle<'a> {
         if let Some(dataset) = &self.dataset {
             return Ok(Rc::new(RefCell::new(
                 Cluster::new_root(dataset)
-                    .partition(&criteria, true)
-                    .with_seed(1),
+                    .with_seed(1)
+                    .partition(&criteria, true),
             )));
         } else {
             return Err("invalid dataset".to_string());
