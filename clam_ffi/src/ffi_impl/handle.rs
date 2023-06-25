@@ -1,13 +1,18 @@
 extern crate nalgebra as na;
 
-use clam::core::cluster::Cluster;
-use clam::core::cluster_criteria::PartitionCriteria;
-use clam::core::dataset::VecVec;
+use abd_clam::core::cluster::Cluster;
+// use abd_clam::core::cluster_criteria::PartitionCriteria;
+// use abd_clam::core::dataset::VecVec;
 use ndarray::Data;
 use std::cell::{RefCell, RefMut};
 use std::ffi;
 use std::mem::transmute;
 use std::rc::Rc;
+
+use abd_clam::cluster::PartitionCriteria;
+use abd_clam::dataset::VecVec;
+use abd_clam::search::cakes::CAKES;
+// use abd_clam::utils::synthetic_data;
 
 use crate::utils::error::FFIError;
 use crate::utils::{anomaly_readers, distances, helpers};
@@ -17,8 +22,9 @@ use crate::{debug, InHandlePtr};
 use super::node::NodeData;
 use super::reingold_impl::{self};
 
-pub type Clusterf32<'a> = Cluster<'a, f32, f32, VecVec<f32, f32>>;
-type DataSet<'a> = VecVec<f32, f32>;
+pub type Clusterf32 = Cluster<f32, f32, VecVec<f32, f32>>;
+type DataSet = VecVec<f32, f32>;
+type Cakesf32 = CAKES<f32, f32, VecVec<f32, f32>>;
 
 // either leaf node or
 // depth at least 4
@@ -41,40 +47,53 @@ impl Drop for Droppable {
 }
 
 //tokio
-pub struct Handle2<'a> {
-    root: &'a Clusterf32<'a>,
-    dataset: &'a DataSet<'a>,
-    labels: &'a [u8],
-}
+// pub struct Handle2 {
+//     root: Clusterf32,
+//     dataset: & DataSet,
+//     labels: & [u8],
+// }
 
-pub struct Handle<'a> {
-    clam_root: Option<Rc<RefCell<Clusterf32<'a>>>>,
-    dataset: Option<DataSet<'a>>,
+pub struct Handle {
+    cakes: Option<Cakesf32>,
+    // dataset: Option<DataSet>,
     labels: Option<Vec<u8>>,
     // droppable: Option<Droppable>,
 }
 
-impl<'a> Drop for Handle<'a> {
+impl Drop for Handle {
     fn drop(&mut self) {
         debug!("DroppingHandle");
     }
 }
-impl<'a> Handle<'a> {
+impl Handle {
     pub fn shutdown(&mut self) {
-        self.clam_root = None;
-        self.dataset = None;
+        self.cakes = None;
+        // self.dataset = None;
         self.labels = None;
     }
 
-    pub fn to_ptr(self) -> *mut Handle<'a> {
-        unsafe { transmute(Box::new(self)) }
+    pub fn new(data_name: &str, cardinality: usize) -> Result<Self, FFIError> {
+        let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
+        match Self::create_dataset(data_name) {
+            Ok((dataset, labels)) => {
+                return Ok(Handle {
+                    cakes: Some(CAKES::new(dataset, Some(1)).build(&criteria)),
+                    labels: Some(labels),
+                });
+            }
+            Err(e) => Err(FFIError::HandleInitFailed),
+        }
     }
 
-    pub fn from_ptr(ptr: *mut Handle) -> &'a mut Handle {
-        unsafe { &mut *ptr }
-    }
+    // pub fn to_ptr(self) -> *mut Handle {
+    //     unsafe { transmute(Box::new(self)) }
+    // }
 
-    // pub unsafe fn from_smart_ptr(ptr: InHandlePtr) -> Result<RefMut<Handle<'a>>, FFIError> {
+    // pub fn from_ptr(ptr: *mut Handle) -> &mut Handle {
+    //     unsafe { &mut *ptr }
+    // }
+
+    // pub unsafe fn from_smart_ptr(ptr: InHandlePtr) -> Result<RefMut<Handle>, FFIError> {
     //     // unsafe { &mut *ptr }
 
     //     if let Some(handle) = ptr {
@@ -85,8 +104,8 @@ impl<'a> Handle<'a> {
     // }
     pub fn default() -> Self {
         Handle {
-            clam_root: None,
-            dataset: None,
+            cakes: None,
+            // dataset: None,
             labels: None,
             // droppable: Some(Droppable { num: 5 }),
         }
@@ -107,24 +126,27 @@ impl<'a> Handle<'a> {
         }
     }
 
-    pub fn build_clam(&mut self, cardinality: usize) -> Result<Rc<RefCell<Clusterf32>>, String> {
-        let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
-        if let Some(dataset) = &self.dataset {
-            return Ok(Rc::new(RefCell::new(
-                Cluster::new_root(dataset)
-                    .with_seed(1)
-                    .partition(&criteria, true),
-            )));
-        } else {
-            return Err("invalid dataset".to_string());
-        }
-    }
+    // pub fn build_abd_clam(
+    //     &mut self,
+    //     cardinality: usize,
+    // ) -> Result<Rc<RefCell<Clusterf32>>, String> {
+    //     let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
+    //     if let Some(dataset) = &self.dataset {
+    //         return Ok(Rc::new(RefCell::new(
+    //             Cluster::new_root(dataset)
+    //                 .with_seed(1)
+    //                 .partition(&criteria, true),
+    //         )));
+    //     } else {
+    //         return Err("invalid dataset".to_string());
+    //     }
+    // }
 
     pub fn init_dataset(&mut self, data_name: &str) -> i32 {
         debug!("dataname in init_Dataset {}", data_name);
         match Self::create_dataset(data_name) {
             Ok((data, labels)) => {
-                self.dataset = Some(data);
+                // self.dataset = Some(data);
                 self.labels = Some(labels);
                 return 1;
             }
@@ -140,9 +162,9 @@ impl<'a> Handle<'a> {
         node_visitor: crate::CBFnNodeVistor,
         start_node: String,
     ) -> FFIError {
-        if let Some(root) = &self.clam_root {
+        if let Some(cakes) = &self.cakes {
             if start_node == "root" {
-                let node = root.as_ref().borrow();
+                let node = cakes.tree().root();
                 Self::for_each_dft_helper(&node, node_visitor);
                 return FFIError::Ok;
             } else {
@@ -163,45 +185,45 @@ impl<'a> Handle<'a> {
     }
 
     fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVistor) {
-        if root.is_leaf() {
-            let mut baton = NodeData::from_clam(&root);
+        // if root.is_leaf() {
+        //     let mut baton = NodeData::from_abd_clam(&root);
 
-            node_visitor(Some(&baton));
-            baton.free_ids();
-            return;
-        }
-        if let Some([left, right]) = root.children() {
-            let mut baton = NodeData::from_clam(&root);
+        //     node_visitor(Some(&baton));
+        //     baton.free_ids();
+        //     return;
+        // }
+        // if let Some([left, right]) = root.children() {
+        //     let mut baton = NodeData::from_abd_clam(&root);
 
-            node_visitor(Some(&baton));
+        //     node_visitor(Some(&baton));
 
-            baton.free_ids();
+        //     baton.free_ids();
 
-            Self::for_each_dft_helper(left, node_visitor);
-            Self::for_each_dft_helper(right, node_visitor);
-        }
+        //     Self::for_each_dft_helper(left, node_visitor);
+        //     Self::for_each_dft_helper(right, node_visitor);
+        // }
     }
 
     pub fn get_num_nodes(&self) -> i32 {
-        if let Some(root) = &self.clam_root {
-            root.as_ref().borrow().num_descendants() as i32
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().num_descendants() as i32
         } else {
             0
         }
     }
-    pub fn set_root(&'a mut self, root: Rc<RefCell<Clusterf32<'a>>>) {
-        self.clam_root = Some(root.clone());
-    }
-    pub fn get_dataset(&self) -> &DataSet {
-        &self.dataset.as_ref().unwrap()
-    }
+    // pub fn set_root(& mut self, root: Rc<RefCell<Clusterf32>>) {
+    //     self.abd_clam_root = Some(root.clone());
+    // }
+    // pub fn get_dataset(&self) -> &DataSet {
+    //     &self.cakes.unwrap().tree().data()
+    // }
 
-    pub fn get_root(&self) -> &Option<Rc<RefCell<Clusterf32<'a>>>> {
-        &self.clam_root
-    }
+    // pub fn get_root(&self) -> &Clusterf32 {
+    //     self.cakes.unwrap().tree().root()
+    // }
 
-    pub unsafe fn find_node(&self, path: String) -> Result<&'a Clusterf32<'a>, FFIError> {
-        if let Some(root) = self.clam_root.clone() {
+    pub unsafe fn find_node(&self, path: String) -> Result<&Clusterf32, FFIError> {
+        if let Some(cakes) = &self.cakes {
             let mut path: String = helpers::hex_to_binary(path)
                 .trim_start_matches('0')
                 .chars()
@@ -209,16 +231,13 @@ impl<'a> Handle<'a> {
                 .collect();
             path.pop();
 
-            return Self::find_node_helper(root.as_ptr().as_mut().unwrap(), path);
+            return Self::find_node_helper(cakes.tree().root(), path);
         }
         debug!("root not built");
         return Err(FFIError::HandleInitFailed);
     }
 
-    pub fn find_node_helper(
-        root: &'a Clusterf32,
-        mut path: String,
-    ) -> Result<&'a Clusterf32<'a>, FFIError> {
+    pub fn find_node_helper(root: &Clusterf32, mut path: String) -> Result<&Clusterf32, FFIError> {
         if path.len() == 0 {
             return Ok(&root);
         }
@@ -237,7 +256,7 @@ impl<'a> Handle<'a> {
     }
 
     // pub fn find_node(&self, path: String) -> Result<NodeData, String> {
-    //     if let Some(root) = self.clam_root.clone() {
+    //     if let Some(root) = self.abd_clam_root.clone() {
     //         let root = root.as_ref().borrow();
     //         // debug!(
     //         //     "searching for (node name in hex): {}",
@@ -252,7 +271,7 @@ impl<'a> Handle<'a> {
 
     //         let out = Self::find_node_helper(
     //             &root,
-    //             // clam_helpers:: unity_node.id.as_string().chars().rev().collect(),
+    //             // abd_clam_helpers:: unity_node.id.as_string().chars().rev().collect(),
     //             path,
     //         );
 
@@ -264,7 +283,7 @@ impl<'a> Handle<'a> {
 
     // pub fn find_node_helper(root: &Clusterf32, mut path: String) -> Result<NodeData, String> {
     //     if path.len() == 0 {
-    //         return Ok(NodeData::from_clam(root));
+    //         return Ok(NodeData::from_abd_clam(root));
     //     }
     //     let choice: char = path.pop().unwrap();
     //     if let Some([left, right]) = root.children() {
@@ -281,10 +300,9 @@ impl<'a> Handle<'a> {
     // }
 
     pub fn create_reingold_layout(&self, node_visitor: crate::CBFnNodeVistor) -> FFIError {
-        if let Some(root) = &self.clam_root {
+        if let Some(cakes) = &self.cakes {
             if let Some(labels) = &self.labels {
-                let layout_root =
-                    reingold_impl::Node::init_draw_tree(&root.as_ref().borrow(), labels);
+                let layout_root = reingold_impl::Node::init_draw_tree(cakes.tree().root(), labels);
 
                 let result = Self::reingoldify(layout_root, node_visitor);
                 return result;

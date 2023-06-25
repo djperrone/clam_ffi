@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "clam_ffi"
+		},
+		{
+			"path": "clam"
 		}
 	],
 	"settings": {

@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 
 [dependencies]
-clam = { path = "../clam/" }
+abd-clam = { path = "../clam/" }
 glam = "0.24.0"
 hex = "0.4.3"
 interoptopus = "0.14.18"

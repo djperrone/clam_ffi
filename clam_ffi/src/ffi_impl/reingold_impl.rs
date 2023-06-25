@@ -4,7 +4,7 @@
 use rand::{rngs::ThreadRng, Rng};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use clam::core::{cluster::Cluster, dataset::VecVec};
+use abd_clam::core::{cluster::Cluster, dataset::VecVec};
 
 use crate::debug;
 
@@ -71,15 +71,15 @@ impl Node {
     }
 
     pub fn init_draw_tree(
-        clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
         labels: &Vec<u8>,
     ) -> Link {
         let draw_root = Node::new_link(
             0f32,
-            clam_root.name(),
-            Self::color_filler(clam_root, labels),
+            abd_clam_root.name(),
+            Self::color_filler(abd_clam_root, labels),
         );
-        Self::init_helper(draw_root.clone(), clam_root, labels, 0f32);
+        Self::init_helper(draw_root.clone(), abd_clam_root, labels, 0f32);
 
         Self::setup(
             draw_root.clone(),
@@ -94,15 +94,15 @@ impl Node {
 
     fn init_helper(
         draw_root: Link,
-        clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
         labels: &Vec<u8>,
         depth: f32,
     ) {
-        if clam_root.is_leaf() {
+        if abd_clam_root.is_leaf() {
             return;
         }
 
-        let subtree = clam_root.children();
+        let subtree = abd_clam_root.children();
         if subtree.is_some() {
             let [left, right] = subtree.unwrap();
             if let Some(node) = draw_root.clone() {
@@ -324,20 +324,20 @@ impl Node {
     }
 
     fn color_filler(root: &Cluster<f32, f32, VecVec<f32, f32>>, labels: &Vec<u8>) -> Vec3 {
-        let mut entropy = vec![0; 2];
+        // let mut entropy = vec![0; 2];
 
-        let indices = root.indices();
+        // let indices = root.indices();
 
-        indices
-            .iter()
-            .for_each(|i| entropy[labels[*i] as usize] += 1);
+        // indices
+        //     .iter()
+        //     .for_each(|i| entropy[labels[*i] as usize] += 1);
 
-        let total_entropy: u32 = entropy.iter().sum();
+        // let total_entropy: u32 = entropy.iter().sum();
 
-        let perc_inliers = entropy[0] as f32 / total_entropy as f32;
-        let perc_outliers = entropy[1] as f32 / total_entropy as f32;
+        // let perc_inliers = entropy[0] as f32 / total_entropy as f32;
+        // let perc_outliers = entropy[1] as f32 / total_entropy as f32;
 
-        return Vec3::new(perc_outliers, perc_inliers, 0.0);
+        return Vec3::new(0f32, 1f32, 0.0);
     }
 
     pub fn get_children(&self) -> (Link, Link) {
