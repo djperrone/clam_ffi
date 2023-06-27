@@ -1,3 +1,4 @@
 [submodule "clam"]
 	path = clam
-	url = https://github.com/URI-ABD/clam.git
+	url = https://github.com/URI-ABD/clam-pub.git
+	
