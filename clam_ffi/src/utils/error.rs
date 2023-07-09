@@ -8,4 +8,7 @@ pub enum FFIError {
     NullPointerPassed = 1,
     InvalidStringPassed = 2,
     HandleInitFailed = 3,
+    GraphBuildFailed = 4,
+    QueryIsNull,
+    PhysicsAlreadyShutdown,
 }

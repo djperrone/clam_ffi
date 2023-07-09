@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, CStr, CString};
 
 use super::error::FFIError;
 
@@ -21,6 +21,19 @@ pub fn free_string(str: *mut u8) {
     } else {
         debug!("tried to free null string");
     }
+}
+
+#[no_mangle]
+pub fn c_char_to_string(s: *const c_char) -> String {
+    let c_str = unsafe {
+        assert!(!s.is_null());
+
+        CStr::from_ptr(s)
+    };
+    debug!("cstr testing {:?}", c_str);
+    let r_str = c_str.to_str().unwrap();
+
+    String::from(r_str)
 }
 
 pub unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, FFIError> {
@@ -52,9 +65,7 @@ pub fn hex_to_binary(hex_string: String) -> String {
             'D' | 'd' => binary_string.push_str("1101"),
             'E' | 'e' => binary_string.push_str("1110"),
             'F' | 'f' => binary_string.push_str("1111"),
-            _ => {
-                
-            }
+            _ => {}
         }
     }
 

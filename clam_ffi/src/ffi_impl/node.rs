@@ -31,6 +31,8 @@ pub struct NodeData {
     pub lfd: f32,
     pub arg_center: i32,
     pub arg_radius: i32,
+
+    pub dist_to_query: f32,
 }
 
 impl NodeData {
@@ -47,9 +49,18 @@ impl NodeData {
             lfd: -1.0,
             arg_center: -1,
             arg_radius: -1,
+            dist_to_query: -1f32,
         }
     }
 
+    pub fn set_left_id(&mut self, id: String) {
+        self.left_id.free();
+        self.left_id = StringFFI::new(id);
+    }
+
+    pub unsafe fn id(&self) -> String {
+        self.id.as_string().unwrap()
+    }
     pub fn set_position(&mut self, pos: glam::Vec3) -> () {
         self.pos = pos;
     }
@@ -89,6 +100,7 @@ impl NodeData {
         self.lfd = node.lfd() as f32;
         self.arg_center = node.arg_center() as i32;
         self.arg_radius = node.arg_radius() as i32;
+         
     }
 
     pub fn from_clam(node: &Clusterf32) -> Self {
@@ -112,6 +124,7 @@ impl NodeData {
             lfd: node.lfd() as f32,
             arg_center: (node.arg_center() as i32),
             arg_radius: (node.arg_radius() as i32),
+            dist_to_query: -1f32,
         }
     }
 
@@ -133,6 +146,7 @@ impl NodeData {
             lfd: -1.0,
             arg_center: -1,
             arg_radius: -1,
+            dist_to_query: -1f32,
         }
     }
     pub fn free_ids(&mut self) {
