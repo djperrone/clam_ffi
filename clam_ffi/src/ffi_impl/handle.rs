@@ -1,7 +1,9 @@
 extern crate nalgebra as na;
 
 use std::collections::HashMap;
-use std::ffi;
+use std::sync::Arc;
+use std::thread::JoinHandle;
+use std::{ffi, thread};
 
 use abd_clam::core::cluster::Cluster;
 // use abd_clam::core::cluster_criteria::PartitionCriteria;
@@ -18,6 +20,7 @@ use crate::utils::{anomaly_readers, distances, helpers};
 use crate::{debug, CBFnNodeVisitor};
 
 use super::node::NodeData;
+use super::physics::{self, ForceDirectedGraph};
 use super::physics_node::PhysicsNode;
 use super::reingold_impl::{self};
 use super::spring::Spring;
@@ -49,6 +52,9 @@ pub struct Handle {
     graph: Option<HashMap<String, PhysicsNode>>,
     edges: Option<Vec<Spring>>,
     current_query: Option<Vec<f32>>,
+    longest_edge: Option<f32>,
+
+    force_directed_graph: Option<(JoinHandle<()>, Arc<ForceDirectedGraph>)>,
 }
 
 impl Drop for Handle {
@@ -86,6 +92,8 @@ impl Handle {
                 graph: None,
                 edges: None,
                 current_query: None,
+                longest_edge: None,
+                force_directed_graph: None,
             };
 
             return Ok(handle);
@@ -105,6 +113,8 @@ impl Handle {
                 graph: None,
                 edges: None,
                 current_query: None,
+                longest_edge: None,
+                force_directed_graph: None,
             };
 
             return Ok(handle);
@@ -119,6 +129,8 @@ impl Handle {
                     graph: None,
                     edges: None,
                     current_query: None,
+                    longest_edge: None,
+                    force_directed_graph: None,
                 });
             }
             Err(_) => Err(FFIError::HandleInitFailed),
@@ -133,17 +145,18 @@ impl Handle {
     //     &mut *ptr
     // }
 
-    pub fn default() -> Self {
-        Handle {
-            cakes: None,
-            // dataset: None,
-            labels: None,
-            graph: None,
-            edges: None,
-            current_query: None,
-            // droppable: Some(Droppable { num: 5 }),
-        }
-    }
+    // pub fn default() -> Self {
+    //     Handle {
+    //         cakes: None,
+    //         // dataset: None,
+    //         labels: None,
+    //         graph: None,
+    //         edges: None,
+    //         current_query: None,
+    //         longest_edge : None
+    //         // droppable: Some(Droppable { num: 5 }),
+    //     }
+    // }
     fn create_dataset(data_name: &str) -> Result<(DataSet, Vec<u8>), String> {
         match anomaly_readers::read_anomaly_data(data_name, false) {
             Ok((first_data, labels)) => {
@@ -160,6 +173,66 @@ impl Handle {
         }
     }
 
+    pub unsafe fn launch_physics_thread(
+        &mut self,
+        cluster_data_arr: &[NodeData],
+        scalar: f32,
+        max_iters: i32,
+        edge_detector_cb: CBFnNodeVisitor,
+        physics_update_cb: CBFnNodeVisitor,
+    ) -> FFIError {
+        let mut clusters: Vec<&Clusterf32> = Vec::new();
+
+        for c in cluster_data_arr {
+            if let Ok(cluster) = self.find_node(c.id.as_string().unwrap()) {
+                clusters.push(cluster);
+            }
+        }
+
+        let springs: Vec<Spring> =
+            Self::create_springs(&self.detect_edges(&clusters, edge_detector_cb));
+        let graph = self.build_graph(&cluster_data_arr);
+        if graph.len() == 0 || springs.len() == 0 {
+            return FFIError::GraphBuildFailed;
+        }
+
+        let force_directed_graph = Arc::new(ForceDirectedGraph::new(
+            graph,
+            springs,
+            scalar,
+            max_iters,
+            physics_update_cb,
+        ));
+
+        let b = force_directed_graph.clone();
+        let p = thread::spawn(move || {
+            physics::produce_computations(&b);
+        });
+        self.force_directed_graph = Some((p, force_directed_graph.clone()));
+
+        return FFIError::Ok;
+    }
+
+    pub unsafe fn physics_update_async(&mut self) -> FFIError {
+        // let mut finished = false;
+        if let Some(force_directed_graph) = &self.force_directed_graph {
+            let update_result = physics::try_update_unity(&force_directed_graph.1);
+
+            let is_finished = force_directed_graph.0.is_finished();
+
+            if is_finished {
+                let _ = self.force_directed_graph.take().unwrap().0.join();
+                self.force_directed_graph = None;
+                debug!("shutting down physics");
+                return FFIError::PhysicsFinished;
+            } else {
+                return update_result;
+            }
+        }
+
+        return FFIError::PhysicsAlreadyShutdown;
+    }
+
     pub unsafe fn init_force_directed_sim(
         &mut self,
         cluster_data_arr: &[NodeData],
@@ -173,7 +246,8 @@ impl Handle {
             }
         }
 
-        let springs = Self::create_springs(&self.detect_edges(&clusters, node_visitor));
+        let springs: Vec<Spring> =
+            Self::create_springs(&self.detect_edges(&clusters, node_visitor));
         let graph = self.build_graph(&cluster_data_arr);
         if graph.len() == 0 || springs.len() == 0 {
             return FFIError::GraphBuildFailed;
@@ -182,14 +256,48 @@ impl Handle {
         self.graph = Some(graph);
         self.edges = Some(springs);
 
+        let longest_edge: f32 = self
+            .edges
+            .as_ref()
+            .unwrap()
+            .iter()
+            .reduce(|cur_max: &Spring, val: &Spring| {
+                if cur_max.nat_len() > val.nat_len() {
+                    cur_max
+                } else {
+                    val
+                }
+            })
+            .unwrap()
+            .nat_len();
+
+        if longest_edge == 0. {
+            debug!("error: longest edge is 0");
+            return FFIError::DivisionByZero;
+        }
+        self.longest_edge = Some(longest_edge);
+
+        // let max_val = arr.iter().max();
+        // let max_val = arr.into_iter().reduce(f32::max);
+
+        // let m = self.edges.unwrap().into_iter().
+
+        // let max = self.edges.unwrap().iter().max_by_key(|p| p.nat_len());
+        // let mut max_value : Srpgin = self.edges.unwrap().iter().reduce(|acc : &Spring, val : &Spring| if val. );
+        // let mut max_value = self
+        //     .edges
+        //     .unwrap()
+        //     .iter()
+        //     .reduce(|max, &val| if val > max { val } else { max });
+
         return FFIError::Ok;
     }
 
-    pub fn apply_forces(&mut self, node_visitor: crate::CBFnNodeVisitor) -> FFIError {
+    pub fn apply_forces(&mut self, node_visitor: crate::CBFnNodeVisitor, scalar: f32) -> FFIError {
         if let Some(graph) = &mut self.graph {
             if let Some(springs) = &self.edges {
                 for spring in springs.iter() {
-                    spring.move_nodes(graph);
+                    spring.move_nodes(graph, self.longest_edge.unwrap(), scalar);
                 }
 
                 //update position on canvas of all nodes (after all spring forces applied, each node will have its final acceleration for this frame)
@@ -264,7 +372,6 @@ impl Handle {
         return edges;
     }
 
-    
     pub unsafe fn color_by_dist_to_query(
         &self,
         id_arr: &[String],

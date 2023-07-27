@@ -21,15 +21,20 @@ impl Spring {
     }
 
     //apply acceleration to both nodes at each end of spring
-    pub fn move_nodes(&self, nodes: &mut HashMap<String, PhysicsNode>) {
+    pub fn move_nodes(
+        &self,
+        nodes: &mut HashMap<String, PhysicsNode>,
+        longest_edge: f32,
+        scalar: f32,
+    ) {
         //borrow ownership of nodes spring is connected to
         let node1 = nodes.get(&self.node1).unwrap();
         let node2 = nodes.get(&self.node2).unwrap();
 
         let force = node2.get_position() - node1.get_position();
         let force_magnitude = physics::get_magnitude(force);
-
-        let new_magnitude = self.k * (force_magnitude - (self.nat_len));
+        let target_len = (self.nat_len / longest_edge.max(f32::MIN)) * scalar;
+        let new_magnitude = self.k * (force_magnitude - (target_len));
 
         let mut new_force = physics::set_magnitude(force, new_magnitude);
 
@@ -47,5 +52,9 @@ impl Spring {
         let node2 = nodes.get_mut(&self.node2).unwrap();
         node2.accelerate(new_force);
         std::mem::drop(node2);
+    }
+
+    pub fn nat_len(&self) -> f32 {
+        self.nat_len
     }
 }

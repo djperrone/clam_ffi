@@ -70,6 +70,43 @@ pub unsafe extern "C" fn init_force_directed_sim(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn launch_physics_thread(
+    context: InHandlePtr,
+    arr_ptr: *mut NodeData,
+    len: i32,
+    scalar: f32,
+    max_iters: i32,
+    edge_detect_cb: CBFnNodeVisitor,
+    physics_update_cb: CBFnNodeVisitor,
+) -> FFIError {
+    if let Some(handle) = context {
+        if arr_ptr.is_null() {
+            return FFIError::NullPointerPassed;
+        }
+        let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
+
+        let err = handle.launch_physics_thread(arr, scalar, max_iters, edge_detect_cb, physics_update_cb);
+        debug!("launch thread result {:?}", err);
+        return err;
+    } else {
+        return FFIError::NullPointerPassed;
+    }
+    // return FFIError::Ok;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn physics_update_async(context: InHandlePtr) -> FFIError {
+    if let Some(handle) = context {
+        let err = handle.physics_update_async();
+        debug!("physics update result {:?}", err);
+        return err;
+    } else {
+        return FFIError::NullPointerPassed;
+    }
+    // return FFIError::Ok;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn color_by_dist_to_query(
     context: InHandlePtr,
     arr_ptr: *mut NodeData,
@@ -134,11 +171,12 @@ pub unsafe extern "C" fn detect_edges(
 #[no_mangle]
 pub unsafe extern "C" fn apply_forces(
     context: InHandlePtr,
+    scalar: f32,
 
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
     if let Some(handle) = context {
-        let err = handle.apply_forces(node_visitor);
+        let err = handle.apply_forces(node_visitor, scalar);
 
         return err;
     } else {
@@ -296,7 +334,7 @@ pub unsafe extern "C" fn distance_to_other(
 #[no_mangle]
 pub unsafe extern "C" fn test_cakes_rnn_query(
     ptr: InHandlePtr,
-    start_node: *const c_char,
+    search_radius: f32,
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
     if let Some(handle) = ptr {
@@ -306,18 +344,11 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
             let queries = abd_clam::utils::helpers::gen_data_f32(num_queries, 10, 0., 1., j);
             let queries = queries.iter().collect::<Vec<_>>();
             for i in 0..num_queries {
-                let (query, radius, k) = (&queries[i], 0.05, 10);
+                let (query, radius, k) = (&queries[i], search_radius, 10);
                 handle.set_current_query(query);
                 let rnn_results = handle.rnn_search(query, radius);
                 match rnn_results {
                     Ok((confirmed, straddlers)) => {
-                        if !confirmed.is_empty() {
-                            debug!("query {} confirmed results: {:?}", i, confirmed);
-                        }
-                        if !straddlers.is_empty() {
-                            debug!("query {} straddler results: {:?}", i, straddlers);
-                        }
-
                         if straddlers.len() < 5 || confirmed.len() < 5 {
                             continue;
                         }
