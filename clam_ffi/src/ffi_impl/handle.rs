@@ -2,32 +2,28 @@ extern crate nalgebra as na;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::thread;
 use std::thread::JoinHandle;
-use std::{ffi, thread};
-
-use abd_clam::core::cluster::Cluster;
-// use abd_clam::core::cluster_criteria::PartitionCriteria;
-// use abd_clam::core::dataset::VecVec;
 
 use abd_clam::cluster::PartitionCriteria;
 use abd_clam::dataset::VecVec;
 use abd_clam::search::cakes::CAKES;
-// use abd_clam::utils::synthetic_data;
 
+use crate::physics::force_directed_graph::ForceDirectedGraph;
+use crate::physics::{self, spring};
 use crate::utils::error::FFIError;
+use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
 use crate::utils::{anomaly_readers, distances, helpers};
 
 use crate::{debug, CBFnNodeVisitor};
 
 use super::node::NodeData;
-use super::physics::{self, ForceDirectedGraph};
-use super::physics_node::PhysicsNode;
 use super::reingold_impl::{self};
-use super::spring::Spring;
+use crate::physics::physics_node::PhysicsNode;
+use spring::Spring;
+// use crate::physics::ForceDirectedGraph;
 
-pub type Clusterf32 = Cluster<f32, f32, VecVec<f32, f32>>;
-type DataSet = VecVec<f32, f32>;
-type Cakesf32 = CAKES<f32, f32, VecVec<f32, f32>>;
+// use ForceDirectedGraph;
 
 // either leaf node or
 // depth at least 4
@@ -206,7 +202,7 @@ impl Handle {
 
         let b = force_directed_graph.clone();
         let p = thread::spawn(move || {
-            physics::produce_computations(&b);
+            physics::force_directed_graph::produce_computations(&b);
         });
         self.force_directed_graph = Some((p, force_directed_graph.clone()));
 
@@ -216,7 +212,8 @@ impl Handle {
     pub unsafe fn physics_update_async(&mut self) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
-            let update_result = physics::try_update_unity(&force_directed_graph.1);
+            let update_result =
+                physics::force_directed_graph::try_update_unity(&force_directed_graph.1);
 
             let is_finished = force_directed_graph.0.is_finished();
 
@@ -276,19 +273,6 @@ impl Handle {
             return FFIError::DivisionByZero;
         }
         self.longest_edge = Some(longest_edge);
-
-        // let max_val = arr.iter().max();
-        // let max_val = arr.into_iter().reduce(f32::max);
-
-        // let m = self.edges.unwrap().into_iter().
-
-        // let max = self.edges.unwrap().iter().max_by_key(|p| p.nat_len());
-        // let mut max_value : Srpgin = self.edges.unwrap().iter().reduce(|acc : &Spring, val : &Spring| if val. );
-        // let mut max_value = self
-        //     .edges
-        //     .unwrap()
-        //     .iter()
-        //     .reduce(|max, &val| if val > max { val } else { max });
 
         return FFIError::Ok;
     }
@@ -483,6 +467,22 @@ impl Handle {
     pub fn get_num_nodes(&self) -> i32 {
         if let Some(cakes) = &self.cakes {
             cakes.tree().root().num_descendants() as i32
+        } else {
+            0
+        }
+    }
+
+    pub fn tree_height(&self) -> i32 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().max_leaf_depth() as i32
+        } else {
+            0
+        }
+    }
+
+    pub fn cardinality(&self) -> i32 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().cardinality() as i32
         } else {
             0
         }

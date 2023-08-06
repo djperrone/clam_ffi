@@ -6,14 +6,10 @@
 
 use crate::{
     debug,
-    utils::{error::FFIError, helpers},
+    utils::{error::FFIError, helpers, types::Clusterf32},
 };
 
-use super::{
-    // glam,
-    handle::Clusterf32,
-    reingold_impl::{self},
-};
+use super::reingold_impl::{self};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -100,7 +96,6 @@ impl NodeData {
         self.lfd = node.lfd() as f32;
         self.arg_center = node.arg_center() as i32;
         self.arg_radius = node.arg_radius() as i32;
-         
     }
 
     pub fn from_clam(node: &Clusterf32) -> Self {

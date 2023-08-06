@@ -4,25 +4,20 @@
 use std::ffi::{c_char, CStr};
 mod core;
 mod ffi_impl;
+mod physics;
 mod tests;
 mod utils;
-use ffi_impl::{
-    handle::Handle,
-    node::{self, NodeData, StringFFI},
-};
-use utils::{error::FFIError, helpers};
+use ffi_impl::node::{NodeData, StringFFI};
+use utils::{debug, error::FFIError, helpers, types::InHandlePtr};
 
-use crate::ffi_impl::handle::Clusterf32;
+use crate::utils::types::Clusterf32;
+
 type CBFnNodeVisitor = extern "C" fn(Option<&NodeData>) -> ();
-
-type OutHandlePtr<'a> = Option<&'a mut *mut Handle>;
-
-type InHandlePtr<'a> = Option<&'a mut Handle>;
 
 #[no_mangle]
 pub unsafe extern "C" fn test_struct_array(context: InHandlePtr, arr: *mut NodeData, len: i32) {
     let test_arr = std::slice::from_raw_parts_mut(arr, len as usize);
-    if let Some(handle) = context {
+    if let Some(_) = context {
         if arr.is_null() {
             return;
         }
@@ -85,7 +80,8 @@ pub unsafe extern "C" fn launch_physics_thread(
         }
         let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
 
-        let err = handle.launch_physics_thread(arr, scalar, max_iters, edge_detect_cb, physics_update_cb);
+        let err =
+            handle.launch_physics_thread(arr, scalar, max_iters, edge_detect_cb, physics_update_cb);
         debug!("launch thread result {:?}", err);
         return err;
     } else {
@@ -239,47 +235,6 @@ pub extern "C" fn free_string_ffi(incoming: Option<&StringFFI>, outgoing: Option
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn shutdown_clam(context_ptr: OutHandlePtr) -> FFIError {
-    if let Some(handle) = context_ptr {
-        let _ = Box::from_raw(*handle);
-        return FFIError::Ok;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn init_clam(
-    ptr: OutHandlePtr,
-    data_name: *const u8,
-    name_len: i32,
-    cardinality: u32,
-) -> FFIError {
-    let data_name = match helpers::csharp_to_rust_utf8(data_name, name_len) {
-        Ok(data_name) => data_name,
-        Err(e) => {
-            debug!("{:?}", e);
-            return FFIError::InvalidStringPassed;
-        }
-    };
-
-    match Handle::new(&data_name, cardinality as usize) {
-        Ok(handle) => {
-            if let Some(out_handle) = ptr {
-                *out_handle = Box::into_raw(Box::new(handle));
-            }
-
-            debug!("built clam tree for {}", data_name);
-            return FFIError::Ok;
-        }
-        Err(e) => {
-            debug!("{:?}", e);
-            return FFIError::HandleInitFailed;
-        }
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn for_each_dft(
     ptr: InHandlePtr,
     node_visitor: CBFnNodeVisitor,
@@ -344,7 +299,7 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
             let queries = abd_clam::utils::helpers::gen_data_f32(num_queries, 10, 0., 1., j);
             let queries = queries.iter().collect::<Vec<_>>();
             for i in 0..num_queries {
-                let (query, radius, k) = (&queries[i], search_radius, 10);
+                let (query, radius, _) = (&queries[i], search_radius, 10);
                 handle.set_current_query(query);
                 let rnn_results = handle.rnn_search(query, radius);
                 match rnn_results {
@@ -381,7 +336,7 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
 
                         return FFIError::Ok;
                     }
-                    Err(e) => {
+                    Err(_) => {
                         debug!("rnn failes");
                         // return e;
                     }
@@ -443,5 +398,31 @@ pub unsafe extern "C" fn get_num_nodes(ptr: InHandlePtr) -> i32 {
     if let Some(handle) = ptr {
         return handle.get_num_nodes() + 1;
     }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn tree_height(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("cardinality: {}", handle.tree_height() + 1);
+
+        return handle.tree_height() + 1;
+    }
+    debug!("handle not created");
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cardinality(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("cardinality: {}", handle.cardinality());
+        return handle.cardinality();
+    }
+    debug!("handle not created");
     return 0;
 }

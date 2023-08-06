@@ -1,45 +1,12 @@
-use super::node::NodeData;
+// use super::node::NodeData;
 use super::physics_node::PhysicsNode;
 use super::spring::Spring;
+use crate::ffi_impl::node::NodeData;
 use crate::utils::error::FFIError;
 use crate::{debug, CBFnNodeVisitor};
 use std::collections::HashMap;
 
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
-
-pub fn get_magnitude(vector: glam::Vec3) -> f32 {
-    (f32::powf(vector.x, 2.) + f32::powf(vector.y, 2.) + f32::powf(vector.z, 2.)).sqrt()
-}
-
-pub fn set_magnitude(mut vector: glam::Vec3, new_mag: f32) -> glam::Vec3 {
-    let old_mag = get_magnitude(vector);
-    let ratio: f32 = new_mag / old_mag.max(0.0001);
-    vector *= ratio;
-    return vector;
-}
-
-// pub fn run_physics_thread(
-//     graph: HashMap<String, PhysicsNode>,
-//     edges: Vec<Spring>,
-//     longest_edge: f32,
-// ) {
-//     // Inside of our lock, spawn a new thread, and then wait for it to start.
-//     thread::spawn(move || {
-//         let (lock, cvar) = &*pair2;
-//         let mut started = lock.lock().unwrap();
-//         *started = true;
-//         // We notify the condvar that the value has changed.
-//         cvar.notify_one();
-//     });
-
-//     // Wait for the thread to start up.
-//     let (lock, cvar) = &*pair;
-//     let mut started = lock.lock().unwrap();
-//     while !*started {
-//         started = cvar.wait(started).unwrap();
-//     }
-// }
+use std::sync::{Condvar, Mutex};
 
 pub struct Status {
     pub data_ready: bool,
