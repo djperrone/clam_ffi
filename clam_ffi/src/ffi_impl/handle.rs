@@ -488,6 +488,37 @@ impl Handle {
         }
     }
 
+    pub fn radius(&self) -> f64 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().radius() as f64
+        } else {
+            0.
+        }
+    }
+
+    pub fn lfd(&self) -> f64 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().lfd()
+        } else {
+            0.
+        }
+    }
+
+    pub fn arg_center(&self) -> i32 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().arg_center() as i32
+        } else {
+            0
+        }
+    }
+    pub fn arg_radius(&self) -> i32 {
+        if let Some(cakes) = &self.cakes {
+            cakes.tree().root().arg_radius() as i32
+        } else {
+            0
+        }
+    }
+
     // why isnt string taken by reference?
     pub unsafe fn find_node(&self, path: String) -> Result<&Clusterf32, FFIError> {
         if let Some(cakes) = &self.cakes {

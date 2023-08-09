@@ -426,3 +426,51 @@ pub unsafe extern "C" fn cardinality(ptr: InHandlePtr) -> i32 {
     debug!("handle not created");
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn radius(ptr: InHandlePtr) -> f64 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("radius: {}", handle.radius());
+        return handle.radius();
+    }
+    debug!("handle not created");
+    return 0.;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lfd(ptr: InHandlePtr) -> f64 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("rarg adius: {}", handle.lfd());
+        return handle.lfd();
+    }
+    debug!("handle not created");
+    return 0.;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn arg_center(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("rarg adius: {}", handle.arg_center());
+        return handle.arg_center();
+    }
+    debug!("handle not created");
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn arg_radius(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        debug!("rarg adius: {}", handle.arg_radius());
+        return handle.arg_radius();
+    }
+    debug!("handle not created");
+    return 0;
+}
