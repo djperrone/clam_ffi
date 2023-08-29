@@ -209,11 +209,10 @@ impl Handle {
         return FFIError::Ok;
     }
 
-    pub unsafe fn physics_update_async(&mut self) -> FFIError {
+    pub unsafe fn physics_update_async(&mut self, updater : CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
-            let update_result =
-                physics::force_directed_graph::try_update_unity(&force_directed_graph.1);
+            debug!("fdg exists");
 
             let is_finished = force_directed_graph.0.is_finished();
 
@@ -223,8 +222,12 @@ impl Handle {
                 debug!("shutting down physics");
                 return FFIError::PhysicsFinished;
             } else {
-                return update_result;
+                debug!("try to update unity");
+
+                return physics::force_directed_graph::try_update_unity(&force_directed_graph.1, updater);
             }
+            // let update_result =
+            //     physics::force_directed_graph::try_update_unity(&force_directed_graph.1);
         }
 
         return FFIError::PhysicsAlreadyShutdown;

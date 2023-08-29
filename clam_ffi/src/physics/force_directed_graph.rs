@@ -94,17 +94,34 @@ impl ForceDirectedGraph {
         // }
     }
 
-    fn try_update_unity(&self) -> FFIError {
+    unsafe fn try_update_unity(&self, updater: CBFnNodeVisitor) -> FFIError {
         match self.graph.try_lock() {
             Ok(mut g) => {
+                debug!("acquired graph lock");
+
                 // Ok(mut graph) => {
                 for (key, value) in &mut g.1 {
+                    // debug!("updating node {}", key);
                     value.update_position();
                     let mut ffi_data = NodeData::new(key.clone());
+                    // debug!("updating node count 2");
+
                     ffi_data.set_position(value.get_position());
-                    (self.unity_updater)(Some(&ffi_data));
+                    // debug!("updating node count 3");
+                    //assert ffi data is valid here
+                    if ffi_data.get_ffi_id().data.is_null() {
+                        debug!("id is null?");
+                        panic!();
+                    }
+                    updater(Some(&ffi_data));
+                    // (self.unity_updater)(Some(&ffi_data));
+                    // debug!("updating node count 4");
+
                     ffi_data.free_ids();
+                    // debug!("updated node {}", key);
                 }
+
+                debug!("updated all nodes");
 
                 // if g.0.finished == true {
                 //     debug!("finished physics sim");
@@ -116,6 +133,8 @@ impl ForceDirectedGraph {
                 g.0.data_ready = false;
                 debug!("set data ready false");
                 self.cond_var.notify_one();
+                debug!("notified thread");
+
                 return FFIError::PhysicsRunning;
             }
             Err(e) => {
@@ -187,6 +206,11 @@ pub fn produce_computations(force_directed_graph: &ForceDirectedGraph) {
     }
 }
 
-pub fn try_update_unity(force_directed_graph: &ForceDirectedGraph) -> FFIError {
-    return force_directed_graph.try_update_unity();
+pub unsafe fn try_update_unity(
+    force_directed_graph: &ForceDirectedGraph,
+    updater: CBFnNodeVisitor,
+) -> FFIError {
+    debug!("try to update unity 2");
+
+    return force_directed_graph.try_update_unity(updater);
 }

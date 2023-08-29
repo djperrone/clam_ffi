@@ -91,9 +91,10 @@ pub unsafe extern "C" fn launch_physics_thread(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn physics_update_async(context: InHandlePtr) -> FFIError {
+pub unsafe extern "C" fn physics_update_async(context: InHandlePtr, updater : CBFnNodeVisitor) -> FFIError {
     if let Some(handle) = context {
-        let err = handle.physics_update_async();
+        debug!("calling physics update async");
+        let err = handle.physics_update_async(updater);
         debug!("physics update result {:?}", err);
         return err;
     } else {

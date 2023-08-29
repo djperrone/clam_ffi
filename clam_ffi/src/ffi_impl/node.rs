@@ -54,8 +54,12 @@ impl NodeData {
         self.left_id = StringFFI::new(id);
     }
 
-    pub unsafe fn id(&self) -> String {
+    pub unsafe fn get_id(&self) -> String {
         self.id.as_string().unwrap()
+    }
+
+    pub unsafe fn get_ffi_id(&self) -> &StringFFI {
+        &self.id
     }
     pub fn set_position(&mut self, pos: glam::Vec3) -> () {
         self.pos = pos;
