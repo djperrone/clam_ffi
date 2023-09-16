@@ -6,6 +6,7 @@ mod core;
 mod ffi_impl;
 mod physics;
 mod tests;
+mod tree_layout;
 mod utils;
 use ffi_impl::node::{NodeData, StringFFI};
 use utils::{debug, error::FFIError, helpers, types::InHandlePtr};
@@ -42,66 +43,58 @@ pub unsafe extern "C" fn test_struct_array(context: InHandlePtr, arr: *mut NodeD
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn init_force_directed_sim(
-    context: InHandlePtr,
-    arr_ptr: *mut NodeData,
-    len: i32,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = context {
-        if arr_ptr.is_null() {
-            return FFIError::NullPointerPassed;
-        }
-        let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
+// #[no_mangle]
+// pub unsafe extern "C" fn init_force_directed_sim(
+//     context: InHandlePtr,
+//     arr_ptr: *mut NodeData,
+//     len: i32,
+//     node_visitor: CBFnNodeVisitor,
+// ) -> FFIError {
+//     if let Some(handle) = context {
+//         if arr_ptr.is_null() {
+//             return FFIError::NullPointerPassed;
+//         }
+//         let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
 
-        let err = handle.init_force_directed_sim(arr, node_visitor);
-        debug!("init graph result {:?}", err);
-        return err;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
-}
+//         let err = handle.init_force_directed_sim(arr, node_visitor);
+//         debug!("init graph result {:?}", err);
+//         return err;
+//     } else {
+//         return FFIError::NullPointerPassed;
+//     }
+//     // return FFIError::Ok;
+// }
 
-#[no_mangle]
-pub unsafe extern "C" fn launch_physics_thread(
-    context: InHandlePtr,
-    arr_ptr: *mut NodeData,
-    len: i32,
-    scalar: f32,
-    max_iters: i32,
-    edge_detect_cb: CBFnNodeVisitor,
-    physics_update_cb: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = context {
-        if arr_ptr.is_null() {
-            return FFIError::NullPointerPassed;
-        }
-        let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
+// #[no_mangle]
+// pub unsafe extern "C" fn launch_physics_thread(
+//     context: InHandlePtr,
+//     arr_ptr: *mut NodeData,
+//     len: i32,
+//     scalar: f32,
+//     max_iters: i32,
+//     edge_detect_cb: CBFnNodeVisitor,
+//     // physics_update_cb: CBFnNodeVisitor,
+// ) -> FFIError {
+//     if let Some(handle) = context {
+//         if arr_ptr.is_null() {
+//             return FFIError::NullPointerPassed;
+//         }
+//         let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
 
-        let err =
-            handle.launch_physics_thread(arr, scalar, max_iters, edge_detect_cb, physics_update_cb);
-        debug!("launch thread result {:?}", err);
-        return err;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn physics_update_async(context: InHandlePtr, updater : CBFnNodeVisitor) -> FFIError {
-    if let Some(handle) = context {
-        debug!("calling physics update async");
-        let err = handle.physics_update_async(updater);
-        debug!("physics update result {:?}", err);
-        return err;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
-}
+//         let err = handle.build_force_directed_graph(
+//             arr,
+//             scalar,
+//             max_iters,
+//             edge_detect_cb,
+//             // physics_update_cb,
+//         );
+//         debug!("launch thread result {:?}", err);
+//         return err;
+//     } else {
+//         return FFIError::NullPointerPassed;
+//     }
+//     // return FFIError::Ok;
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn color_by_dist_to_query(
@@ -131,56 +124,56 @@ pub unsafe extern "C" fn color_by_dist_to_query(
     // return FFIError::Ok;
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn detect_edges(
-    context: InHandlePtr,
-    arr_ptr: *mut NodeData,
-    len: i32,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = context {
-        if arr_ptr.is_null() {
-            return FFIError::NullPointerPassed;
-        }
-        debug!("creating string arr");
-        let arr = std::slice::from_raw_parts(arr_ptr, len as usize);
+// #[no_mangle]
+// pub unsafe extern "C" fn detect_edges(
+//     context: InHandlePtr,
+//     arr_ptr: *mut NodeData,
+//     len: i32,
+//     node_visitor: CBFnNodeVisitor,
+// ) -> FFIError {
+//     if let Some(handle) = context {
+//         if arr_ptr.is_null() {
+//             return FFIError::NullPointerPassed;
+//         }
+//         debug!("creating string arr");
+//         let arr = std::slice::from_raw_parts(arr_ptr, len as usize);
 
-        // let mut ids = Vec::new();
-        // for node in arr {
-        //     ids.push(node.id.as_string().unwrap());
-        // }
-        let mut clusters: Vec<&Clusterf32> = Vec::new();
+//         // let mut ids = Vec::new();
+//         // for node in arr {
+//         //     ids.push(node.id.as_string().unwrap());
+//         // }
+//         let mut clusters: Vec<&Clusterf32> = Vec::new();
 
-        for c in arr {
-            if let Ok(cluster) = handle.find_node(c.id.as_string().unwrap()) {
-                clusters.push(cluster);
-            }
-        }
-        let err = handle.detect_edges(&clusters, node_visitor);
-        debug!("color result {:?}", err);
-        return FFIError::Ok;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
-}
+//         for c in arr {
+//             if let Ok(cluster) = handle.find_node(c.id.as_string().unwrap()) {
+//                 clusters.push(cluster);
+//             }
+//         }
+//         let err = handle.detect_edges(&clusters, node_visitor);
+//         debug!("color result {:?}", err);
+//         return FFIError::Ok;
+//     } else {
+//         return FFIError::NullPointerPassed;
+//     }
+//     // return FFIError::Ok;
+// }
 
-#[no_mangle]
-pub unsafe extern "C" fn apply_forces(
-    context: InHandlePtr,
-    scalar: f32,
+// #[no_mangle]
+// pub unsafe extern "C" fn apply_forces(
+//     context: InHandlePtr,
+//     scalar: f32,
 
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = context {
-        let err = handle.apply_forces(node_visitor, scalar);
+//     node_visitor: CBFnNodeVisitor,
+// ) -> FFIError {
+//     if let Some(handle) = context {
+//         let err = handle.apply_forces(node_visitor, scalar);
 
-        return err;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
-}
+//         return err;
+//     } else {
+//         return FFIError::NullPointerPassed;
+//     }
+//     // return FFIError::Ok;
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn get_cluster_data(
@@ -365,29 +358,6 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
     }
 
     return FFIError::Ok;
-}
-
-#[no_mangle]
-pub extern "C" fn create_reingold_layout(
-    ptr: InHandlePtr,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = ptr {
-        // return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
-        return handle.create_reingold_layout(node_visitor);
-    }
-
-    return FFIError::NullPointerPassed;
-}
-
-#[no_mangle]
-pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
-    if let Some(handle) = ptr {
-        // return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
-        return handle.shutdown_physics();
-    }
-
-    return FFIError::NullPointerPassed;
 }
 
 // Option<& mut *mut Rc<RefCell<Handle>>>

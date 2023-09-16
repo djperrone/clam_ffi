@@ -1,0 +1,154 @@
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    thread::{self, JoinHandle},
+};
+
+use crate::{
+    debug,
+    ffi_impl::{handle::Handle, node::NodeData},
+    physics,
+    utils::{
+        error::FFIError,
+        types::{Clusterf32, DataSet, InHandlePtr},
+    },
+    CBFnNodeVisitor,
+};
+
+use super::{force_directed_graph::ForceDirectedGraph, physics_node::PhysicsNode, spring::Spring};
+
+pub unsafe fn build_force_directed_graph(
+    cluster_data_arr: &[NodeData],
+    handle: &Handle,
+    scalar: f32,
+    max_iters: i32,
+    edge_detector_cb: CBFnNodeVisitor,
+    // physics_update_cb: CBFnNodeVisitor,
+) -> Result<(JoinHandle<()>, Arc<ForceDirectedGraph>), FFIError> {
+    let springs: Vec<Spring> = {
+        let mut clusters: Vec<&Clusterf32> = Vec::new();
+
+        for c in cluster_data_arr.iter() {
+            if let Ok(cluster) = handle.find_node(c.id.as_string().unwrap()) {
+                clusters.push(cluster);
+            }
+        }
+        create_springs(&detect_edges(&clusters, &handle.data(), edge_detector_cb))
+    };
+
+    let graph = build_graph(handle, &cluster_data_arr);
+    if graph.len() == 0 || springs.len() == 0 {
+        return Err(FFIError::GraphBuildFailed);
+    }
+
+    let force_directed_graph = Arc::new(ForceDirectedGraph::new(
+        graph, springs, scalar, max_iters,
+        // physics_update_cb,
+    ));
+
+    let b = force_directed_graph.clone();
+    let p = thread::spawn(move || {
+        physics::force_directed_graph::produce_computations(&b);
+    });
+    return Ok((p, force_directed_graph.clone()));
+}
+
+pub unsafe fn build_graph(
+    // clusters: &'a Vec<&'a Clusterf32>,
+    handle: &Handle,
+    cluster_data_arr: &[NodeData],
+) -> HashMap<String, PhysicsNode> {
+    let mut graph: HashMap<String, PhysicsNode> = HashMap::new();
+
+    for c in cluster_data_arr {
+        graph.insert(
+            c.id.as_string().unwrap(),
+            PhysicsNode::new(&c, handle.find_node(c.id.as_string().unwrap()).unwrap()),
+        );
+    }
+
+    return graph;
+}
+// pub unsafe fn build_graph(
+//     // clusters: &'a Vec<&'a Clusterf32>,
+//     cluster_data_arr: &[NodeData],
+// ) -> HashMap<String, PhysicsNode> {
+//     let mut graph: HashMap<String, PhysicsNode> = HashMap::new();
+
+//     for c in cluster_data_arr {
+//         graph.insert(
+//             c.id.as_string().unwrap(),
+//             PhysicsNode::new(&c, handle.find_node(c.id.as_string().unwrap()).unwrap()),
+//         );
+//     }
+
+//     return graph;
+// }
+
+pub fn detect_edges(
+    clusters: &Vec<&Clusterf32>,
+    dataset: &Option<&DataSet>,
+    node_visitor: crate::CBFnNodeVisitor,
+) -> Vec<(String, String, f32)> {
+    let mut edges: Vec<(String, String, f32)> = Vec::new();
+    if let Some(data) = dataset {
+        for i in 0..clusters.len() {
+            for j in (i + 1)..clusters.len() {
+                let distance = clusters[i].distance_to_other(data, clusters[j]);
+                if distance <= clusters[i].radius() + clusters[j].radius() {
+                    edges.push((clusters[i].name(), clusters[j].name(), distance));
+
+                    let mut data = NodeData::from_clam(clusters[i]);
+                    data.set_left_id(clusters[j].name());
+                    node_visitor(Some(&data));
+                    data.free_ids();
+                }
+            }
+        }
+    }
+
+    return edges;
+}
+
+// pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
+//     // let mut finished = false;
+//     if let Some(force_directed_graph) = &self.force_directed_graph {
+//         debug!("fdg exists");
+
+//         let is_finished = force_directed_graph.0.is_finished();
+
+//         if is_finished {
+//             let _ = self.force_directed_graph.take().unwrap().0.join();
+//             self.force_directed_graph = None;
+//             debug!("shutting down physics");
+//             return FFIError::PhysicsFinished;
+//         } else {
+//             debug!("try to update unity");
+
+//             return physics::force_directed_graph::try_update_unity(
+//                 &force_directed_graph.1,
+//                 updater,
+//             );
+//         }
+//         // let update_result =
+//         //     physics::force_directed_graph::try_update_unity(&force_directed_graph.1);
+//     }
+
+//     return FFIError::PhysicsAlreadyShutdown;
+// }
+
+//creates spring for each edge in graph
+fn create_springs(edges_data: &Vec<(String, String, f32)>) -> Vec<Spring> {
+    let spring_multiplier = 5.;
+
+    let mut return_vec: Vec<Spring> = Vec::new();
+
+    for data in edges_data {
+        //resting length scaled by spring_multiplier
+        // edge_lenght = data.2
+        let new_spring = Spring::new(data.2 * spring_multiplier, data.0.clone(), data.1.clone());
+        return_vec.push(new_spring);
+    }
+
+    return_vec
+}

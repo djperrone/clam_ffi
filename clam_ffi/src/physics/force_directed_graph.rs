@@ -30,7 +30,7 @@ pub struct ForceDirectedGraph {
     scalar: f32,
     // data_ready: Mutex<bool>,
     cond_var: Condvar,
-    unity_updater: CBFnNodeVisitor,
+    // unity_updater: CBFnNodeVisitor,
     max_iters: i32,
     // finished: bool,
 }
@@ -41,7 +41,7 @@ impl ForceDirectedGraph {
         edges: Vec<Spring>,
         scalar: f32,
         max_iters: i32,
-        unity_updater: CBFnNodeVisitor,
+        // unity_updater: CBFnNodeVisitor,
     ) -> Self {
         let max_edge_len = Self::calc_max_edge_len(&edges);
 
@@ -52,7 +52,7 @@ impl ForceDirectedGraph {
             scalar: scalar,
             // data_ready: Mutex::new(false),
             cond_var: Condvar::new(),
-            unity_updater: unity_updater,
+            // unity_updater: unity_updater,
             max_iters: max_iters,
             // finished: false,
         }

@@ -11,6 +11,7 @@ use abd_clam::search::cakes::CAKES;
 
 use crate::physics::force_directed_graph::ForceDirectedGraph;
 use crate::physics::{self, spring};
+use crate::tree_layout::reingold_tilford;
 use crate::utils::error::FFIError;
 use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
 use crate::utils::{anomaly_readers, distances, helpers};
@@ -18,7 +19,7 @@ use crate::utils::{anomaly_readers, distances, helpers};
 use crate::{debug, CBFnNodeVisitor};
 
 use super::node::NodeData;
-use super::reingold_impl::{self};
+// use super::reingold_impl::{self};
 use crate::physics::physics_node::PhysicsNode;
 use spring::Spring;
 // use crate::physics::ForceDirectedGraph;
@@ -68,6 +69,13 @@ impl Handle {
     pub fn data(&self) -> Option<&DataSet> {
         if let Some(c) = &self.cakes {
             return Some(c.data());
+        } else {
+            return None;
+        }
+    }
+    pub fn root(&self) -> Option<&Clusterf32> {
+        if let Some(c) = &self.cakes {
+            return Some(c.tree().root());
         } else {
             return None;
         }
@@ -169,13 +177,13 @@ impl Handle {
         }
     }
 
-    pub unsafe fn launch_physics_thread(
+    pub unsafe fn build_force_directed_graph(
         &mut self,
         cluster_data_arr: &[NodeData],
         scalar: f32,
         max_iters: i32,
         edge_detector_cb: CBFnNodeVisitor,
-        physics_update_cb: CBFnNodeVisitor,
+        // physics_update_cb: CBFnNodeVisitor,
     ) -> FFIError {
         let mut clusters: Vec<&Clusterf32> = Vec::new();
 
@@ -193,11 +201,8 @@ impl Handle {
         }
 
         let force_directed_graph = Arc::new(ForceDirectedGraph::new(
-            graph,
-            springs,
-            scalar,
-            max_iters,
-            physics_update_cb,
+            graph, springs, scalar, max_iters,
+            // physics_update_cb,
         ));
 
         let b = force_directed_graph.clone();
@@ -209,7 +214,7 @@ impl Handle {
         return FFIError::Ok;
     }
 
-    pub unsafe fn physics_update_async(&mut self, updater : CBFnNodeVisitor) -> FFIError {
+    pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
             debug!("fdg exists");
@@ -224,7 +229,10 @@ impl Handle {
             } else {
                 debug!("try to update unity");
 
-                return physics::force_directed_graph::try_update_unity(&force_directed_graph.1, updater);
+                return physics::force_directed_graph::try_update_unity(
+                    &force_directed_graph.1,
+                    updater,
+                );
             }
             // let update_result =
             //     physics::force_directed_graph::try_update_unity(&force_directed_graph.1);
@@ -316,6 +324,22 @@ impl Handle {
         }
 
         return graph;
+    }
+
+    // pub unsafe extern "C" fn second_build_graph(
+    //     &mut self,
+    //     arr_ptr: *mut NodeData,
+    //     len: i32,
+    //     scalar: f32,
+    //     max_iters: i32,
+    //     edge_detect_cb: CBFnNodeVisitor,
+    //     physics_update_cb: CBFnNodeVisitor,
+    // ) -> FFIError {
+
+    // }
+
+    pub fn set_graph(&mut self, graph: (JoinHandle<()>, Arc<ForceDirectedGraph>)) {
+        self.force_directed_graph = Some(graph);
     }
 
     //creates spring for each edge in graph
@@ -558,46 +582,9 @@ impl Handle {
 
     pub fn create_reingold_layout(&self, node_visitor: crate::CBFnNodeVisitor) -> FFIError {
         if let Some(cakes) = &self.cakes {
-            if let Some(labels) = &self.labels {
-                let layout_root = reingold_impl::Node::init_draw_tree(cakes.tree().root(), labels);
-
-                let result = Self::reingoldify(layout_root, node_visitor);
-                return result;
-            } else {
-                let labels: Vec<u8> = Vec::new();
-
-                let layout_root = reingold_impl::Node::init_draw_tree(cakes.tree().root(), &labels);
-
-                let result = Self::reingoldify(layout_root, node_visitor);
-                return result;
-                // return FFIError::HandleInitFailed;
-            }
+            return reingold_tilford::run(cakes.tree().root(), &self.labels, node_visitor);
         } else {
             return FFIError::HandleInitFailed;
-        }
-    }
-
-    pub fn reingoldify(
-        root: reingold_impl::Link,
-        node_visitor: crate::CBFnNodeVisitor,
-    ) -> FFIError {
-        if let Some(_) = root.clone() {
-            Self::reingoldify_helper(root.clone(), node_visitor);
-
-            return FFIError::Ok;
-        }
-        return FFIError::NullPointerPassed;
-    }
-
-    fn reingoldify_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVisitor) -> () {
-        if let Some(node) = root {
-            let mut baton = NodeData::from_reingold_node(&node.as_ref().borrow());
-
-            node_visitor(Some(&baton));
-            baton.free_ids();
-
-            Self::reingoldify_helper(node.as_ref().borrow().get_left_child(), node_visitor);
-            Self::reingoldify_helper(node.as_ref().borrow().get_right_child(), node_visitor);
         }
     }
 }

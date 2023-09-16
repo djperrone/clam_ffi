@@ -72,7 +72,7 @@ impl Node {
 
     pub fn init_draw_tree(
         abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
-        labels: &Vec<u8>,
+        labels: &Option<Vec<u8>>,
     ) -> Link {
         let draw_root = Node::new_link(
             0f32,
@@ -95,7 +95,7 @@ impl Node {
     fn init_helper(
         draw_root: Link,
         abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
-        labels: &Vec<u8>,
+        labels: &Option<Vec<u8>>,
         depth: f32,
     ) {
         if abd_clam_root.is_leaf() {
@@ -323,7 +323,7 @@ impl Node {
         }
     }
 
-    fn color_filler(root: &Cluster<f32, f32, VecVec<f32, f32>>, labels: &Vec<u8>) -> Vec3 {
+    fn color_filler(root: &Cluster<f32, f32, VecVec<f32, f32>>, labels: &Option<Vec<u8>>) -> Vec3 {
         // let mut entropy = vec![0; 2];
 
         // let indices = root.indices();
@@ -336,8 +336,15 @@ impl Node {
 
         // let perc_inliers = entropy[0] as f32 / total_entropy as f32;
         // let perc_outliers = entropy[1] as f32 / total_entropy as f32;
-
-        return Vec3::new(0f32, 1f32, 0.0);
+        match labels {
+            Some(labels_unwrapped) => {
+                // this should change
+                return Vec3::new(0f32, 1f32, 0.0);
+            }
+            None => {
+                return Vec3::new(0f32, 1f32, 0.0);
+            }
+        }
     }
 
     pub fn get_children(&self) -> (Link, Link) {

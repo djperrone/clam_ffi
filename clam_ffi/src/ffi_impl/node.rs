@@ -9,7 +9,7 @@ use crate::{
     utils::{error::FFIError, helpers, types::Clusterf32},
 };
 
-use super::reingold_impl::{self};
+use crate::tree_layout::reingold_impl;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
