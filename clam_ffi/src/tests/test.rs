@@ -204,3 +204,31 @@
 //     let r_str = c_str.to_str().unwrap();
 //     r_str.chars().count() as u32
 // }
+
+// #[no_mangle]
+// pub unsafe extern "C" fn test_struct_array(context: InHandlePtr, arr: *mut NodeData, len: i32) {
+//     let test_arr = std::slice::from_raw_parts_mut(arr, len as usize);
+//     if let Some(_) = context {
+//         if arr.is_null() {
+//             return;
+//         }
+//         let val = *arr;
+//         let val1 = test_arr[1];
+//         let val2 = test_arr[2];
+//         debug!(
+//             "array at {}: {}",
+//             val.id.as_string().unwrap(),
+//             val.cardinality
+//         );
+//         debug!(
+//             "array at {}: {}",
+//             val1.id.as_string().unwrap(),
+//             val1.cardinality
+//         );
+//         debug!(
+//             "array at {}: {}",
+//             val2.id.as_string().unwrap(),
+//             val2.cardinality
+//         );
+//     }
+// }

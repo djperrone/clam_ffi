@@ -8,6 +8,7 @@ use std::thread::JoinHandle;
 use abd_clam::cluster::PartitionCriteria;
 use abd_clam::dataset::VecVec;
 use abd_clam::search::cakes::CAKES;
+use glam::Vec3;
 
 use crate::physics::force_directed_graph::ForceDirectedGraph;
 use crate::physics::{self, spring};
@@ -582,7 +583,34 @@ impl Handle {
 
     pub fn create_reingold_layout(&self, node_visitor: crate::CBFnNodeVisitor) -> FFIError {
         if let Some(cakes) = &self.cakes {
-            return reingold_tilford::run(cakes.tree().root(), &self.labels, node_visitor);
+            return reingold_tilford::run(
+                cakes.tree().root(),
+                &self.labels,
+                &self.data(),
+                node_visitor,
+            );
+        } else {
+            return FFIError::HandleInitFailed;
+        }
+    }
+
+    pub unsafe fn create_reingold_layout_offset_from(
+        &self,
+        root: &NodeData,
+        node_visitor: crate::CBFnNodeVisitor,
+    ) -> FFIError {
+        if let Some(_) = &self.cakes {
+            if let Ok(clam_root) = self.find_node(root.get_id()) {
+                return reingold_tilford::run_offset(
+                    &root.pos,
+                    clam_root,
+                    &self.labels,
+                    &self.data(),
+                    node_visitor,
+                );
+            } else {
+                return FFIError::NullPointerPassed;
+            }
         } else {
             return FFIError::HandleInitFailed;
         }

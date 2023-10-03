@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use abd_clam::core::{cluster::Cluster, dataset::VecVec};
 
-use crate::debug;
+use crate::{debug, utils::types::DataSet};
 
 extern crate nalgebra as na;
 type Vec3 = na::Vector3<f32>;
@@ -70,16 +70,21 @@ impl Node {
         return Some(Rc::new(RefCell::new(Node::new(depth, name, color))));
     }
 
-    pub fn init_draw_tree(
+    pub fn create_layout(
         abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
         labels: &Option<Vec<u8>>,
+        data: &Option<&DataSet>,
     ) -> Link {
+        debug!("before 1st color filler");
+
         let draw_root = Node::new_link(
             0f32,
             abd_clam_root.name(),
-            Self::color_filler(abd_clam_root, labels),
+            Self::color_filler(abd_clam_root, labels, data),
         );
-        Self::init_helper(draw_root.clone(), abd_clam_root, labels, 0f32);
+        debug!("after first color filler");
+
+        Self::init_helper(draw_root.clone(), abd_clam_root, labels, data, 0f32);
 
         Self::setup(
             draw_root.clone(),
@@ -96,6 +101,7 @@ impl Node {
         draw_root: Link,
         abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
         labels: &Option<Vec<u8>>,
+        data: &Option<&VecVec<f32, f32>>,
         depth: f32,
     ) {
         if abd_clam_root.is_leaf() {
@@ -123,21 +129,27 @@ impl Node {
                     debug!("rightt name {}", right.name());
                     debug!("id was not valid");
                 }
+                debug!("before a color filler");
+
                 node.borrow_mut().left_child =
-                    Node::new_link(depth, left.name(), Self::color_filler(left, labels));
+                    Node::new_link(depth, left.name(), Self::color_filler(left, labels, data));
                 node.borrow_mut().right_child =
-                    Node::new_link(depth, right.name(), Self::color_filler(right, labels));
+                    Node::new_link(depth, right.name(), Self::color_filler(right, labels, data));
+
+                debug!("after a color filler");
 
                 Self::init_helper(
                     node.as_ref().borrow().get_left_child(),
                     left,
                     labels,
+                    data,
                     depth + 1.,
                 );
                 Self::init_helper(
                     node.as_ref().borrow().get_right_child(),
                     right,
                     labels,
+                    data,
                     depth + 1.,
                 );
             }
@@ -323,23 +335,67 @@ impl Node {
         }
     }
 
-    fn color_filler(root: &Cluster<f32, f32, VecVec<f32, f32>>, labels: &Option<Vec<u8>>) -> Vec3 {
-        // let mut entropy = vec![0; 2];
+    // fn offset_to_root(t: Link, start_x: f32,
+    // start_y: f32,
+    // start_z: f32,) {
+    //     if let Some(node) = t.clone() {
+    //         node.borrow_mut().x = xpos;
+    //         if node.as_ref().borrow().thread {
+    //             node.borrow_mut().left_child = None;
+    //             node.borrow_mut().right_child = None;
+    //             node.borrow_mut().thread = false;
+    //         }
+    //         Self::petrify(
+    //             node.as_ref().borrow().get_left_child(),
+    //             xpos - node.as_ref().borrow().offset,
+    //         );
+    //         Self::petrify(
+    //             node.as_ref().borrow().get_right_child(),
+    //             xpos + node.as_ref().borrow().offset,
+    //         );
+    //     }
+    // }
 
-        // let indices = root.indices();
-
-        // indices
-        //     .iter()
-        //     .for_each(|i| entropy[labels[*i] as usize] += 1);
-
-        // let total_entropy: u32 = entropy.iter().sum();
-
-        // let perc_inliers = entropy[0] as f32 / total_entropy as f32;
-        // let perc_outliers = entropy[1] as f32 / total_entropy as f32;
+    fn color_filler(
+        root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        labels: &Option<Vec<u8>>,
+        data: &Option<&VecVec<f32, f32>>,
+    ) -> Vec3 {
         match labels {
             Some(labels_unwrapped) => {
-                // this should change
                 return Vec3::new(0f32, 1f32, 0.0);
+
+                // this should change
+                let mut entropy = vec![0; 2];
+                debug!("here1");
+
+                if let Some(d) = data {
+                    let indices = root.indices(d);
+                    debug!("here2");
+
+                    for label in labels_unwrapped {
+                        if *label < 2 {
+                            entropy[*label as usize] += 1;
+                        } else {
+                            return Vec3::new(1f32, 1f32, 1.0);
+                        }
+                    }
+                    debug!("here3");
+
+                    // indices
+                    //     .iter()
+                    //     .for_each(|i| entropy[labels_unwrapped[*i] as usize] += 1);
+
+                    let total_entropy: u32 = entropy.iter().sum();
+
+                    let perc_inliers = entropy[0] as f32 / total_entropy as f32;
+                    let perc_outliers = entropy[1] as f32 / total_entropy as f32;
+                    debug!("here4");
+
+                    return Vec3::new(perc_outliers, perc_inliers, 0.0);
+                } else {
+                    return Vec3::new(0f32, 1f32, 1.0);
+                }
             }
             None => {
                 return Vec3::new(0f32, 1f32, 0.0);

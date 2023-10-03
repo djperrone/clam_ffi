@@ -33,7 +33,7 @@ impl Spring {
         let node2 = nodes.get(&self.node2).unwrap();
 
         let force = node2.get_position() - node1.get_position();
-        let force_magnitude = physics::helpers::get_magnitude(force);
+        let force_magnitude = force.length();
         let target_len = (self.nat_len / longest_edge.max(f32::MIN)) * scalar;
         let new_magnitude = self.k * (force_magnitude - (target_len));
 
