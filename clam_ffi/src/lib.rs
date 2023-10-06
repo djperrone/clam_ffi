@@ -8,68 +8,12 @@ mod physics;
 mod tests;
 mod tree_layout;
 mod utils;
-use ffi_impl::{
-    cluster_data::{ClusterData, StringFFI},
-    cluster_data_wrapper::ClusterDataWrapper,
-};
+use ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper};
 use utils::{debug, error::FFIError, helpers, types::InHandlePtr};
 
 // use crate::utils::types::Clusterf32;
 
 type CBFnNodeVisitor = extern "C" fn(Option<&ClusterData>) -> ();
-
-// #[no_mangle]
-// pub unsafe extern "C" fn init_force_directed_sim(
-//     context: InHandlePtr,
-//     arr_ptr: *mut NodeData,
-//     len: i32,
-//     node_visitor: CBFnNodeVisitor,
-// ) -> FFIError {
-//     if let Some(handle) = context {
-//         if arr_ptr.is_null() {
-//             return FFIError::NullPointerPassed;
-//         }
-//         let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
-
-//         let err = handle.init_force_directed_sim(arr, node_visitor);
-//         debug!("init graph result {:?}", err);
-//         return err;
-//     } else {
-//         return FFIError::NullPointerPassed;
-//     }
-//     // return FFIError::Ok;
-// }
-
-// #[no_mangle]
-// pub unsafe extern "C" fn launch_physics_thread(
-//     context: InHandlePtr,
-//     arr_ptr: *mut NodeData,
-//     len: i32,
-//     scalar: f32,
-//     max_iters: i32,
-//     edge_detect_cb: CBFnNodeVisitor,
-//     // physics_update_cb: CBFnNodeVisitor,
-// ) -> FFIError {
-//     if let Some(handle) = context {
-//         if arr_ptr.is_null() {
-//             return FFIError::NullPointerPassed;
-//         }
-//         let arr = std::slice::from_raw_parts_mut(arr_ptr, len as usize);
-
-//         let err = handle.build_force_directed_graph(
-//             arr,
-//             scalar,
-//             max_iters,
-//             edge_detect_cb,
-//             // physics_update_cb,
-//         );
-//         debug!("launch thread result {:?}", err);
-//         return err;
-//     } else {
-//         return FFIError::NullPointerPassed;
-//     }
-//     // return FFIError::Ok;
-// }
 
 #[no_mangle]
 pub unsafe extern "C" fn color_by_dist_to_query(
@@ -98,57 +42,6 @@ pub unsafe extern "C" fn color_by_dist_to_query(
     }
     // return FFIError::Ok;
 }
-
-// #[no_mangle]
-// pub unsafe extern "C" fn detect_edges(
-//     context: InHandlePtr,
-//     arr_ptr: *mut NodeData,
-//     len: i32,
-//     node_visitor: CBFnNodeVisitor,
-// ) -> FFIError {
-//     if let Some(handle) = context {
-//         if arr_ptr.is_null() {
-//             return FFIError::NullPointerPassed;
-//         }
-//         debug!("creating string arr");
-//         let arr = std::slice::from_raw_parts(arr_ptr, len as usize);
-
-//         // let mut ids = Vec::new();
-//         // for node in arr {
-//         //     ids.push(node.id.as_string().unwrap());
-//         // }
-//         let mut clusters: Vec<&Clusterf32> = Vec::new();
-
-//         for c in arr {
-//             if let Ok(cluster) = handle.find_node(c.id.as_string().unwrap()) {
-//                 clusters.push(cluster);
-//             }
-//         }
-//         let err = handle.detect_edges(&clusters, node_visitor);
-//         debug!("color result {:?}", err);
-//         return FFIError::Ok;
-//     } else {
-//         return FFIError::NullPointerPassed;
-//     }
-//     // return FFIError::Ok;
-// }
-
-// #[no_mangle]
-// pub unsafe extern "C" fn apply_forces(
-//     context: InHandlePtr,
-//     scalar: f32,
-
-//     node_visitor: CBFnNodeVisitor,
-// ) -> FFIError {
-//     if let Some(handle) = context {
-//         let err = handle.apply_forces(node_visitor, scalar);
-
-//         return err;
-//     } else {
-//         return FFIError::NullPointerPassed;
-//     }
-//     // return FFIError::Ok;
-// }
 
 #[no_mangle]
 pub unsafe extern "C" fn get_cluster_data(
@@ -185,22 +78,6 @@ pub unsafe extern "C" fn get_cluster_data(
         }
     }
     return FFIError::NullPointerPassed;
-}
-
-#[no_mangle]
-pub extern "C" fn free_string(data: *mut i8) {
-    debug!("freeing string");
-    helpers::free_c_char(data);
-}
-
-#[no_mangle]
-pub extern "C" fn free_string_ffi(incoming: Option<&StringFFI>, outgoing: Option<&mut StringFFI>) {
-    if let Some(in_data) = incoming {
-        if let Some(out_data) = outgoing {
-            *out_data = *in_data;
-            helpers::free_string(out_data.data);
-        }
-    }
 }
 
 #[no_mangle]
@@ -286,8 +163,6 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
                                 z: 0f32,
                             });
                             node_visitor(Some(baton.data()));
-
-                            // baton.free_ids();
                         }
 
                         for (cluster, dist) in &straddlers {
@@ -300,36 +175,16 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
                                 z: 1f32,
                             });
                             node_visitor(Some(baton.data()));
-                            // baton.free_ids();
                         }
 
                         return FFIError::Ok;
                     }
                     Err(_) => {
                         debug!("rnn failes");
-                        // return e;
                     }
                 }
             }
         }
-
-        // let c_str = unsafe {
-        //     if start_node.is_null() {
-        //         return FFIError::NullPointerPassed;
-        //     }
-
-        //     CStr::from_ptr(start_node)
-        // };
-        // debug!("cakes quer ystart node {:?}", c_str);
-        // match handle.find_node(String::from(c_str.to_str().unwrap())) {
-        //     Ok(node) => {
-        //         // node.
-
-        //     }
-        //     Err(e) => {
-        //         return e;
-        //     }
-        // }
     }
 
     return FFIError::Ok;

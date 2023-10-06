@@ -1,4 +1,4 @@
-use crate::ffi_impl::handle::Handle;
+use crate::core::handle::Handle;
 use crate::utils::helpers;
 use crate::utils::types::OutHandlePtr;
 

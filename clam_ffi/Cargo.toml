@@ -13,9 +13,9 @@ crate-type = ["cdylib"]
 abd-clam = { path = "../clam/" }
 glam = "0.24.0"
 hex = "0.4.3"
-interoptopus = "0.14.18"
-interoptopus_backend_c = "0.14.18"
-interoptopus_backend_csharp = "0.14.18"
+#interoptopus = "0.14.18"
+#interoptopus_backend_c = "0.14.18"
+#interoptopus_backend_csharp = "0.14.18"
 nalgebra = "0.32.2"
 ndarray = "0.15.6"
 ndarray-npy = "0.8.1"

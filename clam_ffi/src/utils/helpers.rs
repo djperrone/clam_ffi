@@ -7,13 +7,13 @@ pub fn alloc_to_c_char(str: String) -> *mut c_char {
     str.into_raw()
 }
 
-pub fn free_c_char(str: *mut c_char) {
-    if !str.is_null() {
-        unsafe { CString::from_raw(str) };
-    } else {
-        debug!("tried to free null string");
-    }
-}
+// pub fn free_c_char(str: *mut c_char) {
+//     if !str.is_null() {
+//         unsafe { CString::from_raw(str) };
+//     } else {
+//         debug!("tried to free null string");
+//     }
+// }
 
 pub fn free_string(str: *mut u8) {
     if !str.is_null() {

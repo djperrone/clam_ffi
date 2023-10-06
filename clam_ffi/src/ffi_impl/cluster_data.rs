@@ -4,12 +4,11 @@
 #![allow(unused_variables)]
 // use glam::Vec3;
 
-use crate::{
-    debug,
-    utils::{error::FFIError, helpers, types::Clusterf32},
-};
+use crate::{debug, utils::types::Clusterf32};
 
 use crate::tree_layout::reingold_impl;
+
+use super::string_ffi::StringFFI;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -32,23 +31,7 @@ pub struct ClusterData {
 }
 
 impl ClusterData {
-    // pub fn new(id: String) -> Self {
-    //     ClusterData {
-    //         id: StringFFI::new(id),
-    //         color: glam::Vec3::new(0., 0., 0.),
-    //         pos: glam::Vec3::new(0., 0., 0.),
-    //         left_id: StringFFI::new("default".to_string()),
-    //         right_id: StringFFI::new("default".to_string()),
-    //         cardinality: -1,
-    //         depth: -1,
-    //         radius: -1.0,
-    //         lfd: -1.0,
-    //         arg_center: -1,
-    //         arg_radius: -1,
-    //         dist_to_query: -1f32,
-    //     }
-    // }
-
+    
     pub fn from_physics(id: String, position: glam::Vec3) -> Self {
         ClusterData {
             id: StringFFI::new(id),
@@ -169,45 +152,5 @@ impl ClusterData {
         self.id.free();
         self.left_id.free();
         self.right_id.free();
-    }
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct StringFFI {
-    pub data: *mut u8,
-    pub len: i32,
-    pub is_owned_by_unity: bool,
-}
-
-impl StringFFI {
-    pub fn new(data: String) -> Self {
-        StringFFI {
-            data: helpers::alloc_to_c_char(data.clone()) as *mut u8,
-            len: data.len() as i32,
-            is_owned_by_unity: false,
-        }
-    }
-
-    pub unsafe fn as_string(&self) -> Result<String, FFIError> {
-        return helpers::csharp_to_rust_utf8(self.data, self.len);
-    }
-
-    pub fn as_ptr(&self) -> *const u8 {
-        return self.data;
-    }
-
-    // dont think this works as intended...
-    pub fn as_mut_ptr(&self) -> *mut u8 {
-        return self.data;
-    }
-
-    pub fn is_empty(&self) -> bool {
-        return self.data.is_null();
-    }
-
-    pub fn free(&mut self) {
-        helpers::free_string(self.data);
-        self.len = 0;
     }
 }

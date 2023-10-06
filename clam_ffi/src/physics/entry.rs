@@ -20,7 +20,6 @@ pub unsafe extern "C" fn physics_update_async(
     } else {
         return FFIError::NullPointerPassed;
     }
-    // return FFIError::Ok;
 }
 
 #[no_mangle]
