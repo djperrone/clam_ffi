@@ -1,6 +1,4 @@
-use crate::{
-    physics::physics_node::PhysicsNode, tree_layout::reingold_impl, utils::types::Clusterf32,
-};
+use crate::{tree_layout::reingold_impl, utils::types::Clusterf32};
 
 use super::cluster_data::ClusterData;
 

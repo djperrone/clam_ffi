@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unreachable_code)]
 
 use rand::{rngs::ThreadRng, Rng};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -355,7 +356,6 @@ impl Node {
     //         );
     //     }
     // }
-
     fn color_filler(
         root: &Cluster<f32, f32, VecVec<f32, f32>>,
         labels: &Option<Vec<u8>>,

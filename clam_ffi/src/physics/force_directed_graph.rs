@@ -1,7 +1,7 @@
 // use super::node::NodeData;
 use super::physics_node::PhysicsNode;
 use super::spring::Spring;
-use crate::ffi_impl::cluster_data::ClusterData;
+// use crate::ffi_impl::cluster_data::ClusterData;
 use crate::ffi_impl::cluster_data_wrapper::ClusterDataWrapper;
 use crate::utils::error::FFIError;
 use crate::{debug, CBFnNodeVisitor};

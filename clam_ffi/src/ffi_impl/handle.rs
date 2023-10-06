@@ -2,13 +2,13 @@ extern crate nalgebra as na;
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread;
+// use std::thread;
 use std::thread::JoinHandle;
 
 use abd_clam::cluster::PartitionCriteria;
 use abd_clam::dataset::VecVec;
 use abd_clam::search::cakes::CAKES;
-use glam::Vec3;
+// use glam::Vec3;
 
 use crate::physics::force_directed_graph::ForceDirectedGraph;
 use crate::physics::{self, spring};
@@ -51,8 +51,7 @@ pub struct Handle {
     graph: Option<HashMap<String, PhysicsNode>>,
     edges: Option<Vec<Spring>>,
     current_query: Option<Vec<f32>>,
-    longest_edge: Option<f32>,
-
+    // longest_edge: Option<f32>,
     force_directed_graph: Option<(JoinHandle<()>, Arc<ForceDirectedGraph>)>,
 }
 
@@ -98,7 +97,7 @@ impl Handle {
                 graph: None,
                 edges: None,
                 current_query: None,
-                longest_edge: None,
+                // longest_edge: None,
                 force_directed_graph: None,
             };
 
@@ -119,7 +118,7 @@ impl Handle {
                 graph: None,
                 edges: None,
                 current_query: None,
-                longest_edge: None,
+                // longest_edge: None,
                 force_directed_graph: None,
             };
 
@@ -135,7 +134,7 @@ impl Handle {
                     graph: None,
                     edges: None,
                     current_query: None,
-                    longest_edge: None,
+                    // longest_edge: None,
                     force_directed_graph: None,
                 });
             }
@@ -345,45 +344,45 @@ impl Handle {
     }
 
     //creates spring for each edge in graph
-    fn create_springs(edges_data: &Vec<(String, String, f32)>) -> Vec<Spring> {
-        let spring_multiplier = 5.;
+    // fn create_springs(edges_data: &Vec<(String, String, f32)>) -> Vec<Spring> {
+    //     let spring_multiplier = 5.;
 
-        let mut return_vec: Vec<Spring> = Vec::new();
+    //     let mut return_vec: Vec<Spring> = Vec::new();
 
-        for data in edges_data {
-            //resting length scaled by spring_multiplier
-            // edge_lenght = data.2
-            let new_spring =
-                Spring::new(data.2 * spring_multiplier, data.0.clone(), data.1.clone());
-            return_vec.push(new_spring);
-        }
+    //     for data in edges_data {
+    //         //resting length scaled by spring_multiplier
+    //         // edge_lenght = data.2
+    //         let new_spring =
+    //             Spring::new(data.2 * spring_multiplier, data.0.clone(), data.1.clone());
+    //         return_vec.push(new_spring);
+    //     }
 
-        return_vec
-    }
+    //     return_vec
+    // }
 
-    pub fn detect_edges(
-        &self,
-        clusters: &Vec<&Clusterf32>,
-        node_visitor: crate::CBFnNodeVisitor,
-    ) -> Vec<(String, String, f32)> {
-        let mut edges: Vec<(String, String, f32)> = Vec::new();
+    // pub fn detect_edges(
+    //     &self,
+    //     clusters: &Vec<&Clusterf32>,
+    //     node_visitor: crate::CBFnNodeVisitor,
+    // ) -> Vec<(String, String, f32)> {
+    //     let mut edges: Vec<(String, String, f32)> = Vec::new();
 
-        for i in 0..clusters.len() {
-            for j in (i + 1)..clusters.len() {
-                let distance = clusters[i].distance_to_other(self.data().unwrap(), clusters[j]);
-                if distance <= clusters[i].radius() + clusters[j].radius() {
-                    edges.push((clusters[i].name(), clusters[j].name(), distance));
+    //     for i in 0..clusters.len() {
+    //         for j in (i + 1)..clusters.len() {
+    //             let distance = clusters[i].distance_to_other(self.data().unwrap(), clusters[j]);
+    //             if distance <= clusters[i].radius() + clusters[j].radius() {
+    //                 edges.push((clusters[i].name(), clusters[j].name(), distance));
 
-                    let mut baton_data = ClusterDataWrapper::from_cluster(clusters[i]);
-                    baton_data.data_mut().set_left_id(clusters[j].name());
-                    node_visitor(Some(baton_data.data()));
-                    // data.free_ids();
-                }
-            }
-        }
+    //                 let mut baton_data = ClusterDataWrapper::from_cluster(clusters[i]);
+    //                 baton_data.data_mut().set_left_id(clusters[j].name());
+    //                 node_visitor(Some(baton_data.data()));
+    //                 // data.free_ids();
+    //             }
+    //         }
+    //     }
 
-        return edges;
-    }
+    //     return edges;
+    // }
 
     pub unsafe fn color_by_dist_to_query(
         &self,

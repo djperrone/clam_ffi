@@ -5,7 +5,7 @@ use crate::{
     ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper},
     utils::{
         error::FFIError,
-        types::{Clusterf32, DataSet, InHandlePtr},
+        types::{Clusterf32, InHandlePtr},
     },
     CBFnNodeVisitor,
 };
@@ -117,7 +117,7 @@ fn update_unity_positions(
     root: reingold_impl::Link,
     node_visitor: crate::CBFnNodeVisitor,
 ) -> FFIError {
-    if let Some(node) = root.clone() {
+    if let Some(_) = root.clone() {
         update_helper(root.clone(), node_visitor);
 
         return FFIError::Ok;
