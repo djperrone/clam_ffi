@@ -1,7 +1,8 @@
 // use super::node::NodeData;
 use super::physics_node::PhysicsNode;
 use super::spring::Spring;
-use crate::ffi_impl::node::NodeData;
+use crate::ffi_impl::cluster_data::ClusterData;
+use crate::ffi_impl::cluster_data_wrapper::ClusterDataWrapper;
 use crate::utils::error::FFIError;
 use crate::{debug, CBFnNodeVisitor};
 use std::collections::HashMap;
@@ -103,21 +104,25 @@ impl ForceDirectedGraph {
                 for (key, value) in &mut g.1 {
                     // debug!("updating node {}", key);
                     value.update_position();
-                    let mut ffi_data = NodeData::new(key.clone());
+                    let baton_data =
+                        ClusterDataWrapper::from_physics(key.clone(), value.get_position());
+                    // let mut ffi_data =
+                    //     ClusterData::from_physics(key.clone(), value.get_position());
+                    // let mut ffi_data = ClusterData::new(key.clone());
                     // debug!("updating node count 2");
 
-                    ffi_data.set_position(value.get_position());
+                    // ffi_data.set_position(value.get_position());
                     // debug!("updating node count 3");
                     //assert ffi data is valid here
-                    if ffi_data.get_ffi_id().data.is_null() {
-                        debug!("id is null?");
-                        panic!();
-                    }
-                    updater(Some(&ffi_data));
+                    // if ffi_data.get_ffi_id().data.is_null() {
+                    //     debug!("id is null?");
+                    //     panic!();
+                    // }
+                    updater(Some(baton_data.data()));
                     // (self.unity_updater)(Some(&ffi_data));
                     // debug!("updating node count 4");
 
-                    ffi_data.free_ids();
+                    // ffi_data.free_ids();
                     // debug!("updated node {}", key);
                 }
 

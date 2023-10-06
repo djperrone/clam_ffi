@@ -6,7 +6,9 @@ use std::{
 
 use crate::{
     debug,
-    ffi_impl::{handle::Handle, node::NodeData},
+    ffi_impl::{
+        cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper, handle::Handle,
+    },
     physics,
     utils::{
         error::FFIError,
@@ -18,7 +20,7 @@ use crate::{
 use super::{force_directed_graph::ForceDirectedGraph, physics_node::PhysicsNode, spring::Spring};
 
 pub unsafe fn build_force_directed_graph(
-    cluster_data_arr: &[NodeData],
+    cluster_data_arr: &[ClusterData],
     handle: &Handle,
     scalar: f32,
     max_iters: i32,
@@ -56,7 +58,7 @@ pub unsafe fn build_force_directed_graph(
 pub unsafe fn build_graph(
     // clusters: &'a Vec<&'a Clusterf32>,
     handle: &Handle,
-    cluster_data_arr: &[NodeData],
+    cluster_data_arr: &[ClusterData],
 ) -> HashMap<String, PhysicsNode> {
     let mut graph: HashMap<String, PhysicsNode> = HashMap::new();
 
@@ -98,10 +100,10 @@ pub fn detect_edges(
                 if distance <= clusters[i].radius() + clusters[j].radius() {
                     edges.push((clusters[i].name(), clusters[j].name(), distance));
 
-                    let mut data = NodeData::from_clam(clusters[i]);
-                    data.set_left_id(clusters[j].name());
-                    node_visitor(Some(&data));
-                    data.free_ids();
+                    let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
+                    baton.data_mut().set_left_id(clusters[j].name());
+                    node_visitor(Some(baton.data()));
+                    // data.free_ids();
                 }
             }
         }

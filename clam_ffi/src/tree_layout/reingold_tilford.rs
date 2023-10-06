@@ -2,7 +2,7 @@ use abd_clam::{dataset::VecVec, number::Number};
 use glam::Vec3;
 
 use crate::{
-    ffi_impl::node::NodeData,
+    ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper},
     utils::{
         error::FFIError,
         types::{Clusterf32, DataSet, InHandlePtr},
@@ -27,7 +27,7 @@ pub extern "C" fn draw_heirarchy(ptr: InHandlePtr, node_visitor: CBFnNodeVisitor
 #[no_mangle]
 pub unsafe extern "C" fn draw_heirarchy_offset_from(
     ptr: InHandlePtr,
-    root: Option<&NodeData>,
+    root: Option<&ClusterData>,
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
     if let Some(handle) = ptr {
@@ -93,12 +93,12 @@ fn update_helper_offset(
     node_visitor: crate::CBFnNodeVisitor,
 ) -> () {
     if let Some(node) = root {
-        let mut baton = NodeData::from_reingold_node(&node.as_ref().borrow());
-        baton.pos.x += offset.x;
-        baton.pos.y -= offset.y;
-        baton.pos.z += offset.z;
-        node_visitor(Some(&baton));
-        baton.free_ids();
+        let mut baton = ClusterDataWrapper::from_reingold_node(&node.as_ref().borrow());
+        baton.data_mut().pos.x += offset.x;
+        baton.data_mut().pos.y -= offset.y;
+        baton.data_mut().pos.z += offset.z;
+        node_visitor(Some(baton.data()));
+        // baton.free_ids();
 
         update_helper_offset(
             node.as_ref().borrow().get_left_child(),
@@ -127,10 +127,10 @@ fn update_unity_positions(
 
 fn update_helper(root: reingold_impl::Link, node_visitor: crate::CBFnNodeVisitor) -> () {
     if let Some(node) = root {
-        let mut baton = NodeData::from_reingold_node(&node.as_ref().borrow());
+        let baton = ClusterDataWrapper::from_reingold_node(&node.as_ref().borrow());
 
-        node_visitor(Some(&baton));
-        baton.free_ids();
+        node_visitor(Some(baton.data()));
+        // baton.free_ids();
 
         update_helper(node.as_ref().borrow().get_left_child(), node_visitor);
         update_helper(node.as_ref().borrow().get_right_child(), node_visitor);

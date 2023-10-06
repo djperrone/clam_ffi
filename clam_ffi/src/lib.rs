@@ -8,12 +8,15 @@ mod physics;
 mod tests;
 mod tree_layout;
 mod utils;
-use ffi_impl::node::{NodeData, StringFFI};
+use ffi_impl::{
+    cluster_data::{ClusterData, StringFFI},
+    cluster_data_wrapper::ClusterDataWrapper,
+};
 use utils::{debug, error::FFIError, helpers, types::InHandlePtr};
 
 use crate::utils::types::Clusterf32;
 
-type CBFnNodeVisitor = extern "C" fn(Option<&NodeData>) -> ();
+type CBFnNodeVisitor = extern "C" fn(Option<&ClusterData>) -> ();
 
 // #[no_mangle]
 // pub unsafe extern "C" fn init_force_directed_sim(
@@ -71,7 +74,7 @@ type CBFnNodeVisitor = extern "C" fn(Option<&NodeData>) -> ();
 #[no_mangle]
 pub unsafe extern "C" fn color_by_dist_to_query(
     context: InHandlePtr,
-    arr_ptr: *mut NodeData,
+    arr_ptr: *mut ClusterData,
     len: i32,
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
@@ -150,8 +153,8 @@ pub unsafe extern "C" fn color_by_dist_to_query(
 #[no_mangle]
 pub unsafe extern "C" fn get_cluster_data(
     context: InHandlePtr,
-    incoming: Option<&NodeData>,
-    outgoing: Option<&mut NodeData>,
+    incoming: Option<&ClusterData>,
+    outgoing: Option<&mut ClusterData>,
 ) -> FFIError {
     if let Some(handle) = context {
         if let Some(in_node) = incoming {
@@ -275,29 +278,29 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
                         }
 
                         for (cluster, dist) in &confirmed {
-                            let mut baton = NodeData::from_clam(cluster);
-                            baton.dist_to_query = *dist;
-                            baton.set_color(glam::Vec3 {
+                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
+                            baton.data_mut().dist_to_query = *dist;
+                            baton.data_mut().set_color(glam::Vec3 {
                                 x: 0f32,
                                 y: 1f32,
                                 z: 0f32,
                             });
-                            node_visitor(Some(&baton));
+                            node_visitor(Some(baton.data()));
 
-                            baton.free_ids();
+                            // baton.free_ids();
                         }
 
                         for (cluster, dist) in &straddlers {
-                            let mut baton = NodeData::from_clam(cluster);
-                            baton.dist_to_query = *dist;
+                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
+                            baton.data_mut().dist_to_query = *dist;
 
-                            baton.set_color(glam::Vec3 {
+                            baton.data_mut().set_color(glam::Vec3 {
                                 x: 0f32,
                                 y: 1f32,
                                 z: 1f32,
                             });
-                            node_visitor(Some(&baton));
-                            baton.free_ids();
+                            node_visitor(Some(baton.data()));
+                            // baton.free_ids();
                         }
 
                         return FFIError::Ok;

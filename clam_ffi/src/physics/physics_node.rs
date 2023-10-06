@@ -1,6 +1,6 @@
 use crate::physics;
 use crate::utils::types::Clusterf32;
-use crate::NodeData;
+use crate::ClusterData;
 pub struct PhysicsNode {
     position: glam::Vec3,
     friction: f32,
@@ -11,7 +11,7 @@ pub struct PhysicsNode {
 }
 
 impl PhysicsNode {
-    pub fn new(node_data: &NodeData, cluster: &Clusterf32) -> Self {
+    pub fn new(node_data: &ClusterData, cluster: &Clusterf32) -> Self {
         PhysicsNode {
             position: node_data.pos,
             friction: 0.98,

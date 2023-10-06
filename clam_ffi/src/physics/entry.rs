@@ -1,6 +1,6 @@
 use crate::{
     debug,
-    ffi_impl::node::NodeData,
+    ffi_impl::cluster_data::ClusterData,
     utils::{error::FFIError, types::InHandlePtr},
     CBFnNodeVisitor,
 };
@@ -26,7 +26,7 @@ pub unsafe extern "C" fn physics_update_async(
 #[no_mangle]
 pub unsafe extern "C" fn run_force_directed_graph_sim(
     context: InHandlePtr,
-    arr_ptr: *mut NodeData,
+    arr_ptr: *mut ClusterData,
     len: i32,
     scalar: f32,
     max_iters: i32,

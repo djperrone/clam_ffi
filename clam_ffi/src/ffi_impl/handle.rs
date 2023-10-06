@@ -19,7 +19,8 @@ use crate::utils::{anomaly_readers, distances, helpers};
 
 use crate::{debug, CBFnNodeVisitor};
 
-use super::node::NodeData;
+use super::cluster_data::ClusterData;
+use super::cluster_data_wrapper::ClusterDataWrapper;
 // use super::reingold_impl::{self};
 use crate::physics::physics_node::PhysicsNode;
 use spring::Spring;
@@ -178,42 +179,42 @@ impl Handle {
         }
     }
 
-    pub unsafe fn build_force_directed_graph(
-        &mut self,
-        cluster_data_arr: &[NodeData],
-        scalar: f32,
-        max_iters: i32,
-        edge_detector_cb: CBFnNodeVisitor,
-        // physics_update_cb: CBFnNodeVisitor,
-    ) -> FFIError {
-        let mut clusters: Vec<&Clusterf32> = Vec::new();
+    // pub unsafe fn build_force_directed_graph(
+    //     &mut self,
+    //     cluster_data_arr: &[ClusterData],
+    //     scalar: f32,
+    //     max_iters: i32,
+    //     edge_detector_cb: CBFnNodeVisitor,
+    //     // physics_update_cb: CBFnNodeVisitor,
+    // ) -> FFIError {
+    //     let mut clusters: Vec<&Clusterf32> = Vec::new();
 
-        for c in cluster_data_arr {
-            if let Ok(cluster) = self.find_node(c.id.as_string().unwrap()) {
-                clusters.push(cluster);
-            }
-        }
+    //     for c in cluster_data_arr {
+    //         if let Ok(cluster) = self.find_node(c.id.as_string().unwrap()) {
+    //             clusters.push(cluster);
+    //         }
+    //     }
 
-        let springs: Vec<Spring> =
-            Self::create_springs(&self.detect_edges(&clusters, edge_detector_cb));
-        let graph = self.build_graph(&cluster_data_arr);
-        if graph.len() == 0 || springs.len() == 0 {
-            return FFIError::GraphBuildFailed;
-        }
+    //     let springs: Vec<Spring> =
+    //         Self::create_springs(&self.detect_edges(&clusters, edge_detector_cb));
+    //     let graph = self.build_graph(&cluster_data_arr);
+    //     if graph.len() == 0 || springs.len() == 0 {
+    //         return FFIError::GraphBuildFailed;
+    //     }
 
-        let force_directed_graph = Arc::new(ForceDirectedGraph::new(
-            graph, springs, scalar, max_iters,
-            // physics_update_cb,
-        ));
+    //     let force_directed_graph = Arc::new(ForceDirectedGraph::new(
+    //         graph, springs, scalar, max_iters,
+    //         // physics_update_cb,
+    //     ));
 
-        let b = force_directed_graph.clone();
-        let p = thread::spawn(move || {
-            physics::force_directed_graph::produce_computations(&b);
-        });
-        self.force_directed_graph = Some((p, force_directed_graph.clone()));
+    //     let b = force_directed_graph.clone();
+    //     let p = thread::spawn(move || {
+    //         physics::force_directed_graph::produce_computations(&b);
+    //     });
+    //     self.force_directed_graph = Some((p, force_directed_graph.clone()));
 
-        return FFIError::Ok;
-    }
+    //     return FFIError::Ok;
+    // }
 
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
@@ -242,90 +243,90 @@ impl Handle {
         return FFIError::PhysicsAlreadyShutdown;
     }
 
-    pub unsafe fn init_force_directed_sim(
-        &mut self,
-        cluster_data_arr: &[NodeData],
-        node_visitor: CBFnNodeVisitor,
-    ) -> FFIError {
-        let mut clusters: Vec<&Clusterf32> = Vec::new();
+    // pub unsafe fn init_force_directed_sim(
+    //     &mut self,
+    //     cluster_data_arr: &[ClusterData],
+    //     node_visitor: CBFnNodeVisitor,
+    // ) -> FFIError {
+    //     let mut clusters: Vec<&Clusterf32> = Vec::new();
 
-        for c in cluster_data_arr {
-            if let Ok(cluster) = self.find_node(c.id.as_string().unwrap()) {
-                clusters.push(cluster);
-            }
-        }
+    //     for c in cluster_data_arr {
+    //         if let Ok(cluster) = self.find_node(c.id.as_string().unwrap()) {
+    //             clusters.push(cluster);
+    //         }
+    //     }
 
-        let springs: Vec<Spring> =
-            Self::create_springs(&self.detect_edges(&clusters, node_visitor));
-        let graph = self.build_graph(&cluster_data_arr);
-        if graph.len() == 0 || springs.len() == 0 {
-            return FFIError::GraphBuildFailed;
-        }
+    //     let springs: Vec<Spring> =
+    //         Self::create_springs(&self.detect_edges(&clusters, node_visitor));
+    //     let graph = self.build_graph(&cluster_data_arr);
+    //     if graph.len() == 0 || springs.len() == 0 {
+    //         return FFIError::GraphBuildFailed;
+    //     }
 
-        self.graph = Some(graph);
-        self.edges = Some(springs);
+    //     self.graph = Some(graph);
+    //     self.edges = Some(springs);
 
-        let longest_edge: f32 = self
-            .edges
-            .as_ref()
-            .unwrap()
-            .iter()
-            .reduce(|cur_max: &Spring, val: &Spring| {
-                if cur_max.nat_len() > val.nat_len() {
-                    cur_max
-                } else {
-                    val
-                }
-            })
-            .unwrap()
-            .nat_len();
+    //     let longest_edge: f32 = self
+    //         .edges
+    //         .as_ref()
+    //         .unwrap()
+    //         .iter()
+    //         .reduce(|cur_max: &Spring, val: &Spring| {
+    //             if cur_max.nat_len() > val.nat_len() {
+    //                 cur_max
+    //             } else {
+    //                 val
+    //             }
+    //         })
+    //         .unwrap()
+    //         .nat_len();
 
-        if longest_edge == 0. {
-            debug!("error: longest edge is 0");
-            return FFIError::DivisionByZero;
-        }
-        self.longest_edge = Some(longest_edge);
+    //     if longest_edge == 0. {
+    //         debug!("error: longest edge is 0");
+    //         return FFIError::DivisionByZero;
+    //     }
+    //     self.longest_edge = Some(longest_edge);
 
-        return FFIError::Ok;
-    }
+    //     return FFIError::Ok;
+    // }
 
-    pub fn apply_forces(&mut self, node_visitor: crate::CBFnNodeVisitor, scalar: f32) -> FFIError {
-        if let Some(graph) = &mut self.graph {
-            if let Some(springs) = &self.edges {
-                for spring in springs.iter() {
-                    spring.move_nodes(graph, self.longest_edge.unwrap(), scalar);
-                }
+    // pub fn apply_forces(&mut self, node_visitor: crate::CBFnNodeVisitor, scalar: f32) -> FFIError {
+    //     if let Some(graph) = &mut self.graph {
+    //         if let Some(springs) = &self.edges {
+    //             for spring in springs.iter() {
+    //                 spring.move_nodes(graph, self.longest_edge.unwrap(), scalar);
+    //             }
 
-                //update position on canvas of all nodes (after all spring forces applied, each node will have its final acceleration for this frame)
-                for (key, value) in graph {
-                    value.update_position();
-                    let mut ffi_data = NodeData::new(key.clone());
-                    ffi_data.set_position(value.get_position());
-                    node_visitor(Some(&ffi_data));
-                    ffi_data.free_ids();
-                }
+    //             //update position on canvas of all nodes (after all spring forces applied, each node will have its final acceleration for this frame)
+    //             for (key, value) in graph {
+    //                 value.update_position();
+    //                 let mut ffi_data = ClusterData::new(key.clone());
+    //                 ffi_data.set_position(value.get_position());
+    //                 node_visitor(Some(&ffi_data));
+    //                 ffi_data.free_ids();
+    //             }
 
-                return FFIError::Ok;
-            }
-        }
-        return FFIError::NullPointerPassed;
-    }
-    pub unsafe fn build_graph(
-        &self,
-        // clusters: &'a Vec<&'a Clusterf32>,
-        cluster_data_arr: &[NodeData],
-    ) -> HashMap<String, PhysicsNode> {
-        let mut graph: HashMap<String, PhysicsNode> = HashMap::new();
+    //             return FFIError::Ok;
+    //         }
+    //     }
+    //     return FFIError::NullPointerPassed;
+    // }
+    // pub unsafe fn build_graph(
+    //     &self,
+    //     // clusters: &'a Vec<&'a Clusterf32>,
+    //     cluster_data_arr: &[ClusterData],
+    // ) -> HashMap<String, PhysicsNode> {
+    //     let mut graph: HashMap<String, PhysicsNode> = HashMap::new();
 
-        for c in cluster_data_arr {
-            graph.insert(
-                c.id.as_string().unwrap(),
-                PhysicsNode::new(&c, self.find_node(c.id.as_string().unwrap()).unwrap()),
-            );
-        }
+    //     for c in cluster_data_arr {
+    //         graph.insert(
+    //             c.id.as_string().unwrap(),
+    //             PhysicsNode::new(&c, self.find_node(c.id.as_string().unwrap()).unwrap()),
+    //         );
+    //     }
 
-        return graph;
-    }
+    //     return graph;
+    // }
 
     // pub unsafe extern "C" fn second_build_graph(
     //     &mut self,
@@ -373,10 +374,10 @@ impl Handle {
                 if distance <= clusters[i].radius() + clusters[j].radius() {
                     edges.push((clusters[i].name(), clusters[j].name(), distance));
 
-                    let mut data = NodeData::from_clam(clusters[i]);
-                    data.set_left_id(clusters[j].name());
-                    node_visitor(Some(&data));
-                    data.free_ids();
+                    let mut baton_data = ClusterDataWrapper::from_cluster(clusters[i]);
+                    baton_data.data_mut().set_left_id(clusters[j].name());
+                    node_visitor(Some(baton_data.data()));
+                    // data.free_ids();
                 }
             }
         }
@@ -393,14 +394,14 @@ impl Handle {
             match self.find_node(id.clone()) {
                 Ok(cluster) => {
                     if let Some(query) = &self.current_query {
-                        let mut data = NodeData::from_clam(cluster);
+                        let mut baton_data = ClusterDataWrapper::from_cluster(cluster);
 
-                        data.dist_to_query =
+                        baton_data.data_mut().dist_to_query =
                             cluster.distance_to_instance(self.data().unwrap(), query);
 
-                        node_visitor(Some(&data));
+                        node_visitor(Some(baton_data.data()));
 
-                        data.free_ids();
+                        // baton_data.free_ids();
                     } else {
                         return FFIError::QueryIsNull;
                     }
@@ -442,17 +443,17 @@ impl Handle {
 
     fn for_each_dft_helper(root: &Clusterf32, node_visitor: crate::CBFnNodeVisitor) {
         if root.is_leaf() {
-            let mut baton = NodeData::from_clam(&root);
+            let baton = ClusterDataWrapper::from_cluster(&root);
 
-            node_visitor(Some(&baton));
-            baton.free_ids();
+            node_visitor(Some(baton.data()));
+            // baton.free_ids();
             return;
         }
         if let Some([left, right]) = root.children() {
-            let mut baton = NodeData::from_clam(&root);
+            let baton = ClusterDataWrapper::from_cluster(&root);
 
-            node_visitor(Some(&baton));
-            baton.free_ids();
+            node_visitor(Some(&baton.data()));
+            // baton.free_ids();
 
             Self::for_each_dft_helper(left, node_visitor);
             Self::for_each_dft_helper(right, node_visitor);
@@ -596,7 +597,7 @@ impl Handle {
 
     pub unsafe fn create_reingold_layout_offset_from(
         &self,
-        root: &NodeData,
+        root: &ClusterData,
         node_visitor: crate::CBFnNodeVisitor,
     ) -> FFIError {
         if let Some(_) = &self.cakes {

@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "cs_bindgen"
+		},
+		{
+			"path": "../scripts"
 		}
 	],
 	"settings": {

@@ -13,7 +13,7 @@ use crate::tree_layout::reingold_impl;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct NodeData {
+pub struct ClusterData {
     pub pos: glam::Vec3,
     pub color: glam::Vec3,
 
@@ -31,12 +31,29 @@ pub struct NodeData {
     pub dist_to_query: f32,
 }
 
-impl NodeData {
-    pub fn new(id: String) -> Self {
-        NodeData {
+impl ClusterData {
+    // pub fn new(id: String) -> Self {
+    //     ClusterData {
+    //         id: StringFFI::new(id),
+    //         color: glam::Vec3::new(0., 0., 0.),
+    //         pos: glam::Vec3::new(0., 0., 0.),
+    //         left_id: StringFFI::new("default".to_string()),
+    //         right_id: StringFFI::new("default".to_string()),
+    //         cardinality: -1,
+    //         depth: -1,
+    //         radius: -1.0,
+    //         lfd: -1.0,
+    //         arg_center: -1,
+    //         arg_radius: -1,
+    //         dist_to_query: -1f32,
+    //     }
+    // }
+
+    pub fn from_physics(id: String, position: glam::Vec3) -> Self {
+        ClusterData {
             id: StringFFI::new(id),
             color: glam::Vec3::new(0., 0., 0.),
-            pos: glam::Vec3::new(0., 0., 0.),
+            pos: position,
             left_id: StringFFI::new("default".to_string()),
             right_id: StringFFI::new("default".to_string()),
             cardinality: -1,
@@ -111,7 +128,7 @@ impl NodeData {
             }
         };
 
-        NodeData {
+        ClusterData {
             pos: glam::Vec3::new(0., 0., 0.),
             color: glam::Vec3::new(0., 0., 0.),
             id: (StringFFI::new(node.name())),
@@ -129,7 +146,7 @@ impl NodeData {
 
     pub fn from_reingold_node(other: &reingold_impl::Node) -> Self {
         let (left, right) = other.get_child_names();
-        NodeData {
+        ClusterData {
             pos: glam::Vec3::new(other.get_x(), other.get_y(), 0.),
             color: glam::Vec3::new(
                 other.get_color().x,
