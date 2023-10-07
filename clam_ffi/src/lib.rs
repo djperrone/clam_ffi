@@ -1,84 +1,52 @@
 //need to use partial struct to pass by reference and access sub structs
 // pass by pointer with classes but cant seem to access sub structs
 
-use std::ffi::{c_char, CStr};
-mod core;
+use std::ffi::c_char;
 mod ffi_impl;
-mod physics;
+mod graph;
+mod handle;
 mod tests;
 mod tree_layout;
 mod utils;
-use ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper};
-use utils::{debug, error::FFIError, helpers, types::InHandlePtr};
+use ffi_impl::{
+    cluster_data::ClusterData,
+    lib_impl::{
+        color_by_dist_to_query_impl, distance_to_other_impl, for_each_dft_impl,
+        get_cluster_data_impl, test_cakes_rnn_query_impl, tree_height_impl,
+    },
+};
+use graph::entry::{
+    physics_update_async_impl, run_force_directed_graph_sim_impl, shutdown_physics_impl,
+};
+use tree_layout::entry_point::{draw_heirarchy_impl, draw_heirarchy_offset_from_impl};
+use utils::{
+    debug,
+    error::FFIError,
+    types::{InHandlePtr, OutHandlePtr},
+};
 
-// use crate::utils::types::Clusterf32;
+use crate::handle::entry_point::{init_clam_impl, shutdown_clam_impl};
 
 type CBFnNodeVisitor = extern "C" fn(Option<&ClusterData>) -> ();
 
+// ------------------------------------- Startup/Shutdown -------------------------------------
+
 #[no_mangle]
-pub unsafe extern "C" fn color_by_dist_to_query(
-    context: InHandlePtr,
-    arr_ptr: *mut ClusterData,
-    len: i32,
-    node_visitor: CBFnNodeVisitor,
+pub unsafe extern "C" fn init_clam(
+    ptr: OutHandlePtr,
+    data_name: *const u8,
+    name_len: i32,
+    cardinality: u32,
 ) -> FFIError {
-    if let Some(handle) = context {
-        if arr_ptr.is_null() {
-            return FFIError::NullPointerPassed;
-        }
-        debug!("creating string arr");
-        let arr = std::slice::from_raw_parts(arr_ptr, len as usize);
-
-        let mut ids = Vec::new();
-        for node in arr {
-            ids.push(node.id.as_string().unwrap());
-        }
-
-        let err = handle.color_by_dist_to_query(ids.as_slice(), node_visitor);
-        debug!("color result {:?}", err);
-        return err;
-    } else {
-        return FFIError::NullPointerPassed;
-    }
-    // return FFIError::Ok;
+    return init_clam_impl(ptr, data_name, name_len, cardinality);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn get_cluster_data(
-    context: InHandlePtr,
-    incoming: Option<&ClusterData>,
-    outgoing: Option<&mut ClusterData>,
-) -> FFIError {
-    if let Some(handle) = context {
-        if let Some(in_node) = incoming {
-            if let Some(out_node) = outgoing {
-                *out_node = *in_node;
-
-                match out_node.id.as_string() {
-                    Ok(path) => match handle.find_node(path) {
-                        Ok(cluster_data) => {
-                            out_node.set_from_clam(&cluster_data);
-                            if let Some(query) = handle.get_current_query() {
-                                out_node.dist_to_query = cluster_data
-                                    .distance_to_instance(handle.data().unwrap(), query);
-                            }
-                            return FFIError::Ok;
-                        }
-                        Err(e) => {
-                            debug!("error {:?}", e);
-                            return e;
-                        }
-                    },
-                    Err(e) => {
-                        debug!("error {:?}", e);
-                        return e;
-                    }
-                }
-            }
-        }
-    }
-    return FFIError::NullPointerPassed;
+pub unsafe extern "C" fn shutdown_clam(context_ptr: OutHandlePtr) -> FFIError {
+    return shutdown_clam_impl(context_ptr);
 }
+
+// -------------------------------------  Tree helpers -------------------------------------
 
 #[no_mangle]
 pub unsafe extern "C" fn for_each_dft(
@@ -86,24 +54,23 @@ pub unsafe extern "C" fn for_each_dft(
     node_visitor: CBFnNodeVisitor,
     start_node: *const c_char,
 ) -> FFIError {
-    if let Some(handle) = ptr {
-        if !start_node.is_null() {
-            let c_str = unsafe {
-                // assert!(!start_node.is_null());
+    return for_each_dft_impl(ptr, node_visitor, start_node);
+}
 
-                CStr::from_ptr(start_node)
-            };
-            let r_str = c_str.to_str().unwrap();
-            debug!("start node name {}", r_str);
+#[no_mangle]
+pub unsafe extern "C" fn tree_height(ptr: InHandlePtr) -> i32 {
+    return tree_height_impl(ptr);
+}
 
-            // return Handle::from_ptr(ptr).for_each_dft(node_visitor, r_str.to_string());
-            return handle.for_each_dft(node_visitor, r_str.to_string());
-        } else {
-            return FFIError::InvalidStringPassed;
-        }
-    }
+// ------------------------------------- Cluster Helpers -------------------------------------
 
-    return FFIError::NullPointerPassed;
+#[no_mangle]
+pub unsafe extern "C" fn get_cluster_data(
+    context: InHandlePtr,
+    incoming: Option<&ClusterData>,
+    outgoing: Option<&mut ClusterData>,
+) -> FFIError {
+    return get_cluster_data_impl(context, incoming, outgoing);
 }
 
 #[no_mangle]
@@ -112,25 +79,61 @@ pub unsafe extern "C" fn distance_to_other(
     node_name1: *const c_char,
     node_name2: *const c_char,
 ) -> f32 {
-    if let Some(handle) = ptr {
-        let node1 = handle.find_node(helpers::c_char_to_string(node_name1));
-        let node2 = handle.find_node(helpers::c_char_to_string(node_name2));
-
-        if let Ok(node1) = node1 {
-            if let Ok(node2) = node2 {
-                let distance = node1.distance_to_other(handle.data().unwrap(), node2);
-                debug!("distance between selected {}", distance);
-                return distance;
-            } else {
-                return -1f32;
-            }
-        } else {
-            return -1f32;
-        }
-    }
-
-    return -1f32;
+    return distance_to_other_impl(ptr, node_name1, node_name2);
 }
+
+// ------------------------------------- Reingold Tilford Tree Layout -------------------------------------
+
+#[no_mangle]
+pub extern "C" fn draw_heirarchy(ptr: InHandlePtr, node_visitor: CBFnNodeVisitor) -> FFIError {
+    return draw_heirarchy_impl(ptr, node_visitor);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn draw_heirarchy_offset_from(
+    ptr: InHandlePtr,
+    root: Option<&ClusterData>,
+    node_visitor: CBFnNodeVisitor,
+) -> FFIError {
+    return draw_heirarchy_offset_from_impl(ptr, root, node_visitor);
+}
+
+// ------------------------------------- Graph Physics -------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn run_force_directed_graph_sim(
+    context: InHandlePtr,
+    arr_ptr: *mut ClusterData,
+    len: i32,
+    scalar: f32,
+    max_iters: i32,
+    edge_detect_cb: CBFnNodeVisitor,
+    // physics_update_cb: CBFnNodeVisitor,
+) -> FFIError {
+    return run_force_directed_graph_sim_impl(
+        context,
+        arr_ptr,
+        len,
+        scalar,
+        max_iters,
+        edge_detect_cb,
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn physics_update_async(
+    context: InHandlePtr,
+    updater: CBFnNodeVisitor,
+) -> FFIError {
+    return physics_update_async_impl(context, updater);
+}
+
+#[no_mangle]
+pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
+    return shutdown_physics_impl(ptr);
+}
+
+// ------------------------------------- RNN Search -------------------------------------
 
 #[no_mangle]
 pub unsafe extern "C" fn test_cakes_rnn_query(
@@ -138,140 +141,15 @@ pub unsafe extern "C" fn test_cakes_rnn_query(
     search_radius: f32,
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
-    if let Some(handle) = ptr {
-        let num_queries = 1;
-
-        for j in 0..1000 {
-            let queries = abd_clam::utils::helpers::gen_data_f32(num_queries, 10, 0., 1., j);
-            let queries = queries.iter().collect::<Vec<_>>();
-            for i in 0..num_queries {
-                let (query, radius, _) = (&queries[i], search_radius, 10);
-                handle.set_current_query(query);
-                let rnn_results = handle.rnn_search(query, radius);
-                match rnn_results {
-                    Ok((confirmed, straddlers)) => {
-                        if straddlers.len() < 5 || confirmed.len() < 5 {
-                            continue;
-                        }
-
-                        for (cluster, dist) in &confirmed {
-                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
-                            baton.data_mut().dist_to_query = *dist;
-                            baton.data_mut().set_color(glam::Vec3 {
-                                x: 0f32,
-                                y: 1f32,
-                                z: 0f32,
-                            });
-                            node_visitor(Some(baton.data()));
-                        }
-
-                        for (cluster, dist) in &straddlers {
-                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
-                            baton.data_mut().dist_to_query = *dist;
-
-                            baton.data_mut().set_color(glam::Vec3 {
-                                x: 0f32,
-                                y: 1f32,
-                                z: 1f32,
-                            });
-                            node_visitor(Some(baton.data()));
-                        }
-
-                        return FFIError::Ok;
-                    }
-                    Err(_) => {
-                        debug!("rnn failes");
-                    }
-                }
-            }
-        }
-    }
-
-    return FFIError::Ok;
-}
-
-// Option<& mut *mut Rc<RefCell<Handle>>>
-// ptr: Option<&mut Rc<RefCell<Handle>>>
-#[no_mangle]
-pub unsafe extern "C" fn get_num_nodes(ptr: InHandlePtr) -> i32 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        return handle.get_num_nodes() + 1;
-    }
-    return 0;
+    return test_cakes_rnn_query_impl(ptr, search_radius, node_visitor);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn tree_height(ptr: InHandlePtr) -> i32 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("cardinality: {}", handle.tree_height() + 1);
-
-        return handle.tree_height() + 1;
-    }
-    debug!("handle not created");
-
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn cardinality(ptr: InHandlePtr) -> i32 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("cardinality: {}", handle.cardinality());
-        return handle.cardinality();
-    }
-    debug!("handle not created");
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn radius(ptr: InHandlePtr) -> f64 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("radius: {}", handle.radius());
-        return handle.radius();
-    }
-    debug!("handle not created");
-    return 0.;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lfd(ptr: InHandlePtr) -> f64 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("rarg adius: {}", handle.lfd());
-        return handle.lfd();
-    }
-    debug!("handle not created");
-    return 0.;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn arg_center(ptr: InHandlePtr) -> i32 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("rarg adius: {}", handle.arg_center());
-        return handle.arg_center();
-    }
-    debug!("handle not created");
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn arg_radius(ptr: InHandlePtr) -> i32 {
-    // Handle::from_ptr(ptr).get_num_nodes() + 1
-
-    if let Some(handle) = ptr {
-        debug!("rarg adius: {}", handle.arg_radius());
-        return handle.arg_radius();
-    }
-    debug!("handle not created");
-    return 0;
+pub unsafe extern "C" fn color_by_dist_to_query(
+    context: InHandlePtr,
+    arr_ptr: *mut ClusterData,
+    len: i32,
+    node_visitor: CBFnNodeVisitor,
+) -> FFIError {
+    return color_by_dist_to_query_impl(context, arr_ptr, len, node_visitor);
 }

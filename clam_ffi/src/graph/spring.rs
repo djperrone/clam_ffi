@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::physics_node::PhysicsNode;
 
-use crate::physics;
+use crate::graph;
 #[derive(Debug)]
 pub struct Spring {
     nat_len: f32,
@@ -37,7 +37,7 @@ impl Spring {
         let target_len = (self.nat_len / longest_edge.max(f32::MIN)) * scalar;
         let new_magnitude = self.k * (force_magnitude - (target_len));
 
-        let mut new_force = physics::helpers::set_magnitude(force, new_magnitude);
+        let mut new_force = graph::helpers::set_magnitude(force, new_magnitude);
 
         //drop ownership to get_mut from hashmap
         std::mem::drop(node1);

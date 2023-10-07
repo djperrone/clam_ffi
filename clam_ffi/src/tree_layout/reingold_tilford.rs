@@ -2,43 +2,14 @@ use abd_clam::{dataset::VecVec, number::Number};
 use glam::Vec3;
 
 use crate::{
-    ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper},
-    utils::{
-        error::FFIError,
-        types::{Clusterf32, InHandlePtr},
-    },
-    CBFnNodeVisitor,
+    ffi_impl::cluster_data_wrapper::ClusterDataWrapper,
+    utils::{error::FFIError, types::Clusterf32},
+    // CBFnNodeVisitor,
 };
 
 use super::reingold_impl;
 
 // pub fn create_layout() -> () {}
-
-#[no_mangle]
-pub extern "C" fn draw_heirarchy(ptr: InHandlePtr, node_visitor: CBFnNodeVisitor) -> FFIError {
-    if let Some(handle) = ptr {
-        // return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
-        return handle.create_reingold_layout(node_visitor);
-    }
-
-    return FFIError::NullPointerPassed;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn draw_heirarchy_offset_from(
-    ptr: InHandlePtr,
-    root: Option<&ClusterData>,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = ptr {
-        if let Some(node) = root {
-            return handle.create_reingold_layout_offset_from(node, node_visitor);
-        }
-        // return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
-    }
-
-    return FFIError::NullPointerPassed;
-}
 
 pub fn run(
     clam_root: &Clusterf32,

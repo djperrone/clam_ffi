@@ -1,4 +1,4 @@
-use crate::core::handle::Handle;
+use crate::handle::handle::Handle;
 use crate::utils::helpers;
 use crate::utils::types::OutHandlePtr;
 
@@ -6,8 +6,7 @@ use crate::utils::error::FFIError;
 
 use crate::debug;
 
-#[no_mangle]
-pub unsafe extern "C" fn shutdown_clam(context_ptr: OutHandlePtr) -> FFIError {
+pub unsafe fn shutdown_clam_impl(context_ptr: OutHandlePtr) -> FFIError {
     if let Some(handle) = context_ptr {
         let _ = Box::from_raw(*handle);
         return FFIError::Ok;
@@ -16,8 +15,7 @@ pub unsafe extern "C" fn shutdown_clam(context_ptr: OutHandlePtr) -> FFIError {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn init_clam(
+pub unsafe fn init_clam_impl(
     ptr: OutHandlePtr,
     data_name: *const u8,
     name_len: i32,

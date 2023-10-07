@@ -1,6 +1,6 @@
 use abd_clam::{cluster::Cluster, dataset::VecVec, search::cakes::CAKES};
 
-use crate::core::handle::Handle;
+use crate::handle::handle::Handle;
 
 pub type OutHandlePtr<'a> = Option<&'a mut *mut Handle>;
 

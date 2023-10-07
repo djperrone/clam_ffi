@@ -1,4 +1,4 @@
-use crate::physics;
+use crate::graph;
 use crate::utils::types::Clusterf32;
 use crate::ClusterData;
 pub struct PhysicsNode {
@@ -43,8 +43,8 @@ impl PhysicsNode {
         self.velocity *= self.friction; //reduce velocity by applying friction
 
         //if current velocity > max_speed, set velocity to max speed (to prevent extreme rubber banding in some graphs)
-        if physics::helpers::get_magnitude(self.velocity) > self.max_speed {
-            self.velocity = physics::helpers::set_magnitude(self.velocity, self.max_speed);
+        if graph::helpers::get_magnitude(self.velocity) > self.max_speed {
+            self.velocity = graph::helpers::set_magnitude(self.velocity, self.max_speed);
         }
 
         //sets back to origin (look further into kiss3d so you dont have to use translations)

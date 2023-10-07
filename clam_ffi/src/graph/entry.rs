@@ -7,8 +7,7 @@ use crate::{
 
 use super::graph_builder;
 
-#[no_mangle]
-pub unsafe extern "C" fn physics_update_async(
+pub unsafe fn physics_update_async_impl(
     context: InHandlePtr,
     updater: CBFnNodeVisitor,
 ) -> FFIError {
@@ -22,8 +21,7 @@ pub unsafe extern "C" fn physics_update_async(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn run_force_directed_graph_sim(
+pub unsafe fn run_force_directed_graph_sim_impl(
     context: InHandlePtr,
     arr_ptr: *mut ClusterData,
     len: i32,
@@ -63,8 +61,8 @@ pub unsafe extern "C" fn run_force_directed_graph_sim(
     // return FFIError::Ok;
 }
 
-#[no_mangle]
-pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
+
+pub fn shutdown_physics_impl(ptr: InHandlePtr) -> FFIError {
     if let Some(handle) = ptr {
         // return Handle::from_ptr(ptr).create_reingold_layout(node_visitor);
         return handle.shutdown_physics();

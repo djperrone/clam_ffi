@@ -5,11 +5,11 @@ use std::{
 };
 
 use crate::{
-    core::handle::Handle,
     // debug,
     ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper},
 
-    physics,
+    graph,
+    handle::handle::Handle,
     utils::{
         error::FFIError,
         types::{Clusterf32, DataSet},
@@ -50,7 +50,7 @@ pub unsafe fn build_force_directed_graph(
 
     let b = force_directed_graph.clone();
     let p = thread::spawn(move || {
-        physics::force_directed_graph::produce_computations(&b);
+        graph::force_directed_graph::produce_computations(&b);
     });
     return Ok((p, force_directed_graph.clone()));
 }

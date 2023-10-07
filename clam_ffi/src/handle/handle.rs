@@ -10,8 +10,8 @@ use abd_clam::dataset::VecVec;
 use abd_clam::search::cakes::CAKES;
 // use glam::Vec3;
 
-use crate::physics::force_directed_graph::ForceDirectedGraph;
-use crate::physics::{self, spring};
+use crate::graph::force_directed_graph::ForceDirectedGraph;
+use crate::graph::{self, spring};
 use crate::tree_layout::reingold_tilford;
 use crate::utils::error::FFIError;
 use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
@@ -22,7 +22,7 @@ use crate::{debug, CBFnNodeVisitor};
 use crate::ffi_impl::cluster_data::ClusterData;
 use crate::ffi_impl::cluster_data_wrapper::ClusterDataWrapper;
 // use super::reingold_impl::{self};
-use crate::physics::physics_node::PhysicsNode;
+use crate::graph::physics_node::PhysicsNode;
 use spring::Spring;
 // use crate::physics::ForceDirectedGraph;
 
@@ -142,7 +142,6 @@ impl Handle {
         }
     }
 
-  
     fn create_dataset(data_name: &str) -> Result<(DataSet, Vec<u8>), String> {
         match anomaly_readers::read_anomaly_data(data_name, false) {
             Ok((first_data, labels)) => {
@@ -159,7 +158,6 @@ impl Handle {
         }
     }
 
-    
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
@@ -175,7 +173,7 @@ impl Handle {
             } else {
                 debug!("try to update unity");
 
-                return physics::force_directed_graph::try_update_unity(
+                return graph::force_directed_graph::try_update_unity(
                     &force_directed_graph.1,
                     updater,
                 );
@@ -187,13 +185,9 @@ impl Handle {
         return FFIError::PhysicsAlreadyShutdown;
     }
 
-
-
     pub fn set_graph(&mut self, graph: (JoinHandle<()>, Arc<ForceDirectedGraph>)) {
         self.force_directed_graph = Some(graph);
     }
-
-    
 
     pub unsafe fn color_by_dist_to_query(
         &self,
@@ -210,7 +204,6 @@ impl Handle {
                             cluster.distance_to_instance(self.data().unwrap(), query);
 
                         node_visitor(Some(baton_data.data()));
-
                     } else {
                         return FFIError::QueryIsNull;
                     }
