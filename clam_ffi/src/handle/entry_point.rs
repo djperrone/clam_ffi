@@ -1,6 +1,6 @@
 use crate::handle::handle::Handle;
 use crate::utils::helpers;
-use crate::utils::types::OutHandlePtr;
+use crate::utils::types::{OutHandlePtr, InHandlePtr};
 
 use crate::utils::error::FFIError;
 
@@ -8,12 +8,28 @@ use crate::debug;
 
 pub unsafe fn shutdown_clam_impl(context_ptr: OutHandlePtr) -> FFIError {
     if let Some(handle) = context_ptr {
+
         let _ = Box::from_raw(*handle);
         return FFIError::Ok;
     } else {
         return FFIError::NullPointerPassed;
     }
 }
+
+pub unsafe fn force_physics_shutdown(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        // debug!("cardinality: {}", handle.tree_height() + 1);
+        handle.force_physics_shutdown();
+
+        // return handle.tree_height() + 1;
+    }
+    debug!("handle not created");
+
+    return 0;
+}
+
 
 pub unsafe fn init_clam_impl(
     ptr: OutHandlePtr,

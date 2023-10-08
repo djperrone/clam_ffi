@@ -133,6 +133,20 @@ pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
     return shutdown_physics_impl(ptr);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn force_physics_shutdown(ptr: InHandlePtr) -> i32 {
+    // Handle::from_ptr(ptr).get_num_nodes() + 1
+
+    if let Some(handle) = ptr {
+        // debug!("cardinality: {}", handle.tree_height() + 1);
+        handle.force_physics_shutdown();
+
+        // return handle.tree_height() + 1;
+    }
+    debug!("handle not created");
+
+    return 0;
+}
 // ------------------------------------- RNN Search -------------------------------------
 
 #[no_mangle]

@@ -3,7 +3,8 @@ extern crate nalgebra as na;
 use std::collections::HashMap;
 use std::sync::Arc;
 // use std::thread;
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use abd_clam::cluster::PartitionCriteria;
 use abd_clam::dataset::VecVec;
@@ -45,6 +46,16 @@ use spring::Spring;
 //     labels: & [u8],
 // }
 
+struct TestDrop {
+    pub test: i32,
+}
+
+impl Drop for TestDrop {
+    fn drop(&mut self) {
+        debug!("drop test");
+    }
+}
+
 pub struct Handle {
     cakes: Option<Cakesf32>,
     labels: Option<Vec<u8>>,
@@ -53,13 +64,15 @@ pub struct Handle {
     current_query: Option<Vec<f32>>,
     // longest_edge: Option<f32>,
     force_directed_graph: Option<(JoinHandle<()>, Arc<ForceDirectedGraph>)>,
+    testDrop: Option<TestDrop>,
 }
 
-impl Drop for Handle {
-    fn drop(&mut self) {
-        debug!("DroppingHandle");
-    }
-}
+// impl Drop for Handle {
+//     fn drop(&mut self) {
+
+//         debug!("DroppingHandle");
+//     }
+// }
 impl Handle {
     pub fn shutdown(&mut self) {
         self.cakes = None;
@@ -99,6 +112,7 @@ impl Handle {
                 current_query: None,
                 // longest_edge: None,
                 force_directed_graph: None,
+                testDrop: Some(TestDrop { test: 5 }),
             };
 
             return Ok(handle);
@@ -120,6 +134,7 @@ impl Handle {
                 current_query: None,
                 // longest_edge: None,
                 force_directed_graph: None,
+                testDrop: Some(TestDrop { test: 5 }),
             };
 
             return Ok(handle);
@@ -136,6 +151,7 @@ impl Handle {
                     current_query: None,
                     // longest_edge: None,
                     force_directed_graph: None,
+                    testDrop: Some(TestDrop { test: 5 }),
                 });
             }
             Err(_) => Err(FFIError::HandleInitFailed),
@@ -156,6 +172,34 @@ impl Handle {
             }
             Err(e) => Err(e),
         }
+    }
+
+    pub unsafe fn force_physics_shutdown(&mut self) -> FFIError {
+        // let mut finished = false;
+
+        //** */ this function blocks the main thread which prevents ohysics from finishing -
+        // need to notify working thread to stop and then wait for it
+
+        if let Some(force_directed_graph) = &self.force_directed_graph {
+            debug!("fdg exists");
+            debug!("trying to end sim early - handle before force shutdown graph calls");
+
+            graph::force_directed_graph::force_shutdown(&force_directed_graph.1);
+            debug!("trying to end sim early - handle after force shutdown graph calls");
+            let is_finished = force_directed_graph.0.is_finished();
+            if is_finished {
+                debug!("thread finished");
+            } else {
+                debug!("thread NOT FINISHED???");
+            }
+            let _ = self.force_directed_graph.take().unwrap().0.join();
+            debug!("trying to end sim early - handle after joins");
+
+            self.force_directed_graph = None;
+            debug!("shutting down physics");
+            return FFIError::PhysicsFinished;
+        }
+        return FFIError::PhysicsAlreadyShutdown;
     }
 
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {

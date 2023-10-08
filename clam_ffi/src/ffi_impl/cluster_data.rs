@@ -31,7 +31,6 @@ pub struct ClusterData {
 }
 
 impl ClusterData {
-    
     pub fn from_physics(id: String, position: glam::Vec3) -> Self {
         ClusterData {
             id: StringFFI::new(id),
@@ -70,29 +69,29 @@ impl ClusterData {
     }
 
     pub fn set_from_clam(&mut self, node: &Clusterf32) -> () {
-        let (left_id, right_id) = {
-            if let Some([left, right]) = node.children() {
-                (left.name(), right.name())
-            } else {
-                ("default".to_string(), "default".to_string())
-            }
-        };
-        if self.id.is_empty() {
-            debug!("warning unity struct was sent with null id");
-            self.id = StringFFI::new(node.name());
-        }
+        // let (left_id, right_id) = {
+        //     if let Some([left, right]) = node.children() {
+        //         (left.name(), right.name())
+        //     } else {
+        //         ("default".to_string(), "default".to_string())
+        //     }
+        // };
+        // if self.id.is_empty() {
+        //     debug!("warning unity struct was sent with null id");
+        //     self.id = StringFFI::new(node.name());
+        // }
 
-        if self.left_id.is_empty() {
-            debug!("warning unity struct was sent with null lid");
+        // if self.left_id.is_empty() {
+        //     debug!("warning unity struct was sent with null lid");
 
-            self.left_id = StringFFI::new(left_id);
-        }
+        //     self.left_id = StringFFI::new(left_id);
+        // }
 
-        if self.right_id.is_empty() {
-            debug!("warning unity struct was sent with null rid");
+        // if self.right_id.is_empty() {
+        //     debug!("warning unity struct was sent with null rid");
 
-            self.right_id = StringFFI::new(right_id);
-        }
+        //     self.right_id = StringFFI::new(right_id);
+        // }
 
         self.cardinality = node.cardinality() as i32;
         self.depth = node.depth() as i32;
