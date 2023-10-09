@@ -1,3 +1,5 @@
+use std::ffi::{c_char, CString};
+
 use crate::utils::{error::FFIError, helpers};
 
 #[repr(C)]
@@ -8,15 +10,22 @@ pub struct StringFFI {
 }
 
 impl StringFFI {
-    pub fn new(data: String) -> Self {
+    pub fn new(str: String) -> Self {
         StringFFI {
-            data: helpers::alloc_to_c_char(data.clone()) as *mut u8,
-            len: data.len() as i32,
+            // data: Self::alloc_to_c_char(data.clone()) as *mut u8,
+            len: str.len() as i32,
+            data: CString::new(str).unwrap().into_raw() as *mut u8,
+            // str.into_raw()
         }
     }
 
     pub unsafe fn as_string(&self) -> Result<String, FFIError> {
-        return helpers::csharp_to_rust_utf8(self.data, self.len);
+        // return Self::csharp_to_rust_utf8(self.data, self.len);
+        let slice = std::slice::from_raw_parts(self.data, self.len as usize);
+        match String::from_utf8(slice.to_vec()) {
+            Ok(str) => Ok(str),
+            Err(_) => Err(FFIError::InvalidStringPassed),
+        }
     }
 
     pub fn as_ptr(&self) -> *const u8 {
@@ -24,16 +33,46 @@ impl StringFFI {
     }
 
     // dont think this works as intended...
-    pub fn as_mut_ptr(&self) -> *mut u8 {
-        return self.data;
-    }
+    // pub fn as_mut_ptr(&self) -> *mut u8 {
+    //     return self.data;
+    // }
 
     pub fn is_empty(&self) -> bool {
         return self.data.is_null();
     }
 
     pub fn free(&mut self) {
-        helpers::free_string(self.data);
-        self.len = 0;
+        unsafe {
+            if !self.data.is_null() {
+                {
+                    CString::from_raw(self.data as *mut i8);
+                    self.len = 0;
+                    
+                };
+            }
+        }
+        // Self::free_string(self.data);
     }
+
+    // unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, FFIError> {
+    //     let slice = std::slice::from_raw_parts(utf8_str, utf8_len as usize);
+    //     match String::from_utf8(slice.to_vec()) {
+    //         // String::from_raw_parts
+    //         Ok(str) => Ok(str),
+    //         Err(_) => Err(FFIError::InvalidStringPassed),
+    //     }
+    // }
+
+    // pub fn alloc_to_c_char(str: String) -> *mut c_char {
+    //     let str = CString::new(str).unwrap();
+    //     str.into_raw()
+    // }
+
+    // pub unsafe fn free_string(str: *mut u8) {
+    //     if !str.is_null() {
+    //         {
+    //             CString::from_raw(str as *mut i8)
+    //         };
+    //     }
+    // }
 }

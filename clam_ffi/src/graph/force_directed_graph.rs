@@ -62,25 +62,18 @@ impl ForceDirectedGraph {
     }
 
     fn compute_next_frame(&self) -> bool {
-        debug!("compute next frame waiting {}");
-
         let mutex_result = self
             .cond_var
             .wait_while(self.graph.lock().unwrap(), |(status, _)| {
                 status.data_ready == true && status.force_shutdown == false
             });
         let i = 6;
-        debug!(
-            "compute next frame woke up {0}, {1}",
-            mutex_result.as_ref().unwrap().0.force_shutdown,
-            i
-        );
+
         // mutex_result.unwrap().0.force_shutdown;
 
         match mutex_result {
             Ok(mut g) => {
                 if g.0.force_shutdown == true {
-                    debug!("cinoyte next frame forcing shudown");
                     g.0.data_ready = false;
                     return false;
                 } else {
@@ -90,7 +83,6 @@ impl ForceDirectedGraph {
                     }
 
                     g.0.data_ready = true;
-                    debug!("set data reasdy true");
                 }
                 // let data_ready = &mut g.0;
             }
@@ -119,8 +111,6 @@ impl ForceDirectedGraph {
 
         match self.graph.lock() {
             Ok(mut g) => {
-                debug!("acquired graph lock in force shutdown");
-
                 g.0.force_shutdown = true;
 
                 // Ok(mut graph) => {
@@ -153,8 +143,6 @@ impl ForceDirectedGraph {
     unsafe fn try_update_unity(&self, updater: CBFnNodeVisitor) -> FFIError {
         match self.graph.try_lock() {
             Ok(mut g) => {
-                debug!("acquired graph lock");
-
                 // Ok(mut graph) => {
                 for (key, value) in &mut g.1 {
                     // debug!("updating node {}", key);
@@ -181,8 +169,6 @@ impl ForceDirectedGraph {
                     // debug!("updated node {}", key);
                 }
 
-                debug!("updated all nodes");
-
                 // if g.0.finished == true {
                 //     debug!("finished physics sim");
                 //     return FFIError::PhysicsFinished;
@@ -191,9 +177,7 @@ impl ForceDirectedGraph {
                 // if self.
 
                 g.0.data_ready = false;
-                debug!("set data ready false");
                 self.cond_var.notify_one();
-                debug!("notified thread");
 
                 return FFIError::PhysicsRunning;
             }
@@ -259,13 +243,11 @@ impl ForceDirectedGraph {
 }
 
 pub fn produce_computations(force_directed_graph: &ForceDirectedGraph) {
-    debug!("num iters: {}", force_directed_graph.max_iters);
     for i in 0..force_directed_graph.max_iters {
         println!("p: {}", i);
 
         // returns false if being forced to terminate mid - simulation
         if force_directed_graph.compute_next_frame() == false {
-            debug!("trying to end sim early - produce computations");
             return;
         };
     }
@@ -275,13 +257,9 @@ pub unsafe fn try_update_unity(
     force_directed_graph: &ForceDirectedGraph,
     updater: CBFnNodeVisitor,
 ) -> FFIError {
-    debug!("try to update unity 2");
-
     return force_directed_graph.try_update_unity(updater);
 }
 
 pub unsafe fn force_shutdown(force_directed_graph: &ForceDirectedGraph) -> FFIError {
-    debug!("try to update unity 2");
-
     return force_directed_graph.force_shutdown();
 }

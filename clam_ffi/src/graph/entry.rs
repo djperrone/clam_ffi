@@ -14,7 +14,7 @@ pub unsafe fn physics_update_async_impl(
     if let Some(handle) = context {
         // debug!("calling physics update async");
         let err = handle.physics_update_async(updater);
-        debug!("physics update result {:?}", err);
+        // debug!("physics update result {:?}", err);
         return err;
     } else {
         return FFIError::NullPointerPassed;
@@ -60,7 +60,6 @@ pub unsafe fn run_force_directed_graph_sim_impl(
     }
     // return FFIError::Ok;
 }
-
 
 pub fn shutdown_physics_impl(ptr: InHandlePtr) -> FFIError {
     if let Some(handle) = ptr {

@@ -76,14 +76,14 @@ impl Node {
         labels: &Option<Vec<u8>>,
         data: &Option<&DataSet>,
     ) -> Link {
-        debug!("before 1st color filler");
+        // debug!("before 1st color filler");
 
         let draw_root = Node::new_link(
             0f32,
             abd_clam_root.name(),
             Self::color_filler(abd_clam_root, labels, data),
         );
-        debug!("after first color filler");
+        // debug!("after first color filler");
 
         Self::init_helper(draw_root.clone(), abd_clam_root, labels, data, 0f32);
 
@@ -130,14 +130,14 @@ impl Node {
                     debug!("rightt name {}", right.name());
                     debug!("id was not valid");
                 }
-                debug!("before a color filler");
+                // debug!("before a color filler");
 
                 node.borrow_mut().left_child =
                     Node::new_link(depth, left.name(), Self::color_filler(left, labels, data));
                 node.borrow_mut().right_child =
                     Node::new_link(depth, right.name(), Self::color_filler(right, labels, data));
 
-                debug!("after a color filler");
+                // debug!("after a color filler");
 
                 Self::init_helper(
                     node.as_ref().borrow().get_left_child(),
@@ -367,11 +367,11 @@ impl Node {
 
                 // this should change
                 let mut entropy = vec![0; 2];
-                debug!("here1");
+                // debug!("here1");
 
                 if let Some(d) = data {
                     let indices = root.indices(d);
-                    debug!("here2");
+                    // debug!("here2");
 
                     for label in labels_unwrapped {
                         if *label < 2 {
@@ -380,7 +380,7 @@ impl Node {
                             return Vec3::new(1f32, 1f32, 1.0);
                         }
                     }
-                    debug!("here3");
+                    // debug!("here3");
 
                     // indices
                     //     .iter()
@@ -390,7 +390,7 @@ impl Node {
 
                     let perc_inliers = entropy[0] as f32 / total_entropy as f32;
                     let perc_outliers = entropy[1] as f32 / total_entropy as f32;
-                    debug!("here4");
+                    // debug!("here4");
 
                     return Vec3::new(perc_outliers, perc_inliers, 0.0);
                 } else {

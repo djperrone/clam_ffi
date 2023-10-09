@@ -181,19 +181,10 @@ impl Handle {
         // need to notify working thread to stop and then wait for it
 
         if let Some(force_directed_graph) = &self.force_directed_graph {
-            debug!("fdg exists");
-            debug!("trying to end sim early - handle before force shutdown graph calls");
-
             graph::force_directed_graph::force_shutdown(&force_directed_graph.1);
-            debug!("trying to end sim early - handle after force shutdown graph calls");
-            let is_finished = force_directed_graph.0.is_finished();
-            if is_finished {
-                debug!("thread finished");
-            } else {
-                debug!("thread NOT FINISHED???");
-            }
+            // let is_finished = force_directed_graph.0.is_finished();
+
             let _ = self.force_directed_graph.take().unwrap().0.join();
-            debug!("trying to end sim early - handle after joins");
 
             self.force_directed_graph = None;
             debug!("shutting down physics");
@@ -205,7 +196,6 @@ impl Handle {
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
-            debug!("fdg exists");
 
             let is_finished = force_directed_graph.0.is_finished();
 
@@ -215,7 +205,7 @@ impl Handle {
                 debug!("shutting down physics");
                 return FFIError::PhysicsFinished;
             } else {
-                debug!("try to update unity");
+                // debug!("try to update unity");
 
                 return graph::force_directed_graph::try_update_unity(
                     &force_directed_graph.1,

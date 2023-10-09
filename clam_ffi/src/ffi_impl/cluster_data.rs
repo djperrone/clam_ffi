@@ -20,6 +20,8 @@ pub struct ClusterData {
     pub left_id: StringFFI,
     pub right_id: StringFFI,
 
+    pub message: StringFFI,
+
     pub cardinality: i32,
     pub depth: i32,
     pub radius: f32,
@@ -31,6 +33,23 @@ pub struct ClusterData {
 }
 
 impl ClusterData {
+    pub fn default() -> Self {
+        ClusterData {
+            id: StringFFI::new("".to_string()),
+            color: glam::Vec3::new(0., 0., 0.),
+            pos: glam::Vec3::new(0., 0., 0.),
+            left_id: StringFFI::new("default".to_string()),
+            right_id: StringFFI::new("default".to_string()),
+            cardinality: -1,
+            depth: -1,
+            radius: -1.0,
+            lfd: -1.0,
+            arg_center: -1,
+            arg_radius: -1,
+            dist_to_query: -1f32,
+            message: StringFFI::new(std::iter::repeat(' ').take(50).collect()),
+        }
+    }
     pub fn from_physics(id: String, position: glam::Vec3) -> Self {
         ClusterData {
             id: StringFFI::new(id),
@@ -45,6 +64,7 @@ impl ClusterData {
             arg_center: -1,
             arg_radius: -1,
             dist_to_query: -1f32,
+            message: StringFFI::new(std::iter::repeat(' ').take(50).collect()),
         }
     }
 
@@ -68,38 +88,15 @@ impl ClusterData {
         self.color = color;
     }
 
-    pub fn set_from_clam(&mut self, node: &Clusterf32) -> () {
-        // let (left_id, right_id) = {
-        //     if let Some([left, right]) = node.children() {
-        //         (left.name(), right.name())
-        //     } else {
-        //         ("default".to_string(), "default".to_string())
-        //     }
-        // };
-        // if self.id.is_empty() {
-        //     debug!("warning unity struct was sent with null id");
-        //     self.id = StringFFI::new(node.name());
-        // }
+    // pub fn set_from_clam(&mut self, node: &Clusterf32) -> () {
 
-        // if self.left_id.is_empty() {
-        //     debug!("warning unity struct was sent with null lid");
-
-        //     self.left_id = StringFFI::new(left_id);
-        // }
-
-        // if self.right_id.is_empty() {
-        //     debug!("warning unity struct was sent with null rid");
-
-        //     self.right_id = StringFFI::new(right_id);
-        // }
-
-        self.cardinality = node.cardinality() as i32;
-        self.depth = node.depth() as i32;
-        self.radius = node.radius() as f32;
-        self.lfd = node.lfd() as f32;
-        self.arg_center = node.arg_center() as i32;
-        self.arg_radius = node.arg_radius() as i32;
-    }
+    //     self.cardinality = node.cardinality() as i32;
+    //     self.depth = node.depth() as i32;
+    //     self.radius = node.radius() as f32;
+    //     self.lfd = node.lfd() as f32;
+    //     self.arg_center = node.arg_center() as i32;
+    //     self.arg_radius = node.arg_radius() as i32;
+    // }
 
     pub fn from_clam(node: &Clusterf32) -> Self {
         let (left_id, right_id) = {
@@ -123,6 +120,7 @@ impl ClusterData {
             arg_center: (node.arg_center() as i32),
             arg_radius: (node.arg_radius() as i32),
             dist_to_query: -1f32,
+            message: StringFFI::new(std::iter::repeat(' ').take(50).collect()),
         }
     }
 
@@ -145,11 +143,13 @@ impl ClusterData {
             arg_center: -1,
             arg_radius: -1,
             dist_to_query: -1f32,
+            message: StringFFI::new(std::iter::repeat(' ').take(50).collect()),
         }
     }
     pub fn free_ids(&mut self) {
         self.id.free();
         self.left_id.free();
         self.right_id.free();
+        self.message.free();
     }
 }

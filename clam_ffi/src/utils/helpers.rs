@@ -23,6 +23,14 @@ pub fn free_string(str: *mut u8) {
     }
 }
 
+// start_node: *const c_char
+// if !start_node.is_null() {
+//     let c_str = unsafe {
+//         // assert!(!start_node.is_null());
+
+//         CStr::from_ptr(start_node)
+//     };
+
 #[no_mangle]
 pub fn c_char_to_string(s: *const c_char) -> String {
     let c_str = unsafe {
@@ -30,7 +38,7 @@ pub fn c_char_to_string(s: *const c_char) -> String {
 
         CStr::from_ptr(s)
     };
-    debug!("cstr testing {:?}", c_str);
+    // debug!("cstr testing {:?}", c_str);
     let r_str = c_str.to_str().unwrap();
 
     String::from(r_str)

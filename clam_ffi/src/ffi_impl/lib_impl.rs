@@ -21,7 +21,7 @@ pub unsafe fn for_each_dft_impl(
                 CStr::from_ptr(start_node)
             };
             let r_str = c_str.to_str().unwrap();
-            debug!("start node name {}", r_str);
+            // debug!("start node name {}", r_str);
 
             // return Handle::from_ptr(ptr).for_each_dft(node_visitor, r_str.to_string());
             return handle.for_each_dft(node_visitor, r_str.to_string());
@@ -37,7 +37,7 @@ pub unsafe fn tree_height_impl(ptr: InHandlePtr) -> i32 {
     // Handle::from_ptr(ptr).get_num_nodes() + 1
 
     if let Some(handle) = ptr {
-        debug!("cardinality: {}", handle.tree_height() + 1);
+        // debug!("cardinality: {}", handle.tree_height() + 1);
 
         return handle.tree_height() + 1;
     }
@@ -46,41 +46,68 @@ pub unsafe fn tree_height_impl(ptr: InHandlePtr) -> i32 {
     return 0;
 }
 
-pub unsafe fn get_cluster_data_impl(
-    context: InHandlePtr,
-    incoming: Option<&ClusterData>,
-    outgoing: Option<&mut ClusterData>,
-) -> FFIError {
-    if let Some(handle) = context {
-        if let Some(in_node) = incoming {
-            if let Some(out_node) = outgoing {
-                *out_node = *in_node;
+// pub unsafe fn test_mod_struct(context: InHandlePtr, ptr: *mut ClusterData) {
+//     if let Some(handle) = context {
+//         let mut out_node = unsafe { &mut *ptr };
+//         out_node.arg_center = 5;
+//         match out_node.id.as_string() {
+//             Ok(path) => match handle.find_node(path) {
+//                 Ok(cluster_data) => {
+//                     out_node.set_from_clam(&cluster_data);
+//                     if let Some(query) = handle.get_current_query() {
+//                         out_node.dist_to_query =
+//                             cluster_data.distance_to_instance(handle.data().unwrap(), query);
+//                     }
+//                     // return FFIError::Ok;
+//                 }
+//                 Err(e) => {
+//                     debug!("error {:?}", e);
+//                     // return e;
+//                 }
+//             },
+//             Err(e) => {
+//                 debug!("error {:?}", e);
+//                 // return e;
+//             }
+//         }
+//     }
+// }
 
-                match out_node.id.as_string() {
-                    Ok(path) => match handle.find_node(path) {
-                        Ok(cluster_data) => {
-                            out_node.set_from_clam(&cluster_data);
-                            if let Some(query) = handle.get_current_query() {
-                                out_node.dist_to_query = cluster_data
-                                    .distance_to_instance(handle.data().unwrap(), query);
-                            }
-                            return FFIError::Ok;
-                        }
-                        Err(e) => {
-                            debug!("error {:?}", e);
-                            return e;
-                        }
-                    },
-                    Err(e) => {
-                        debug!("error {:?}", e);
-                        return e;
-                    }
-                }
-            }
-        }
-    }
-    return FFIError::NullPointerPassed;
-}
+// pub unsafe fn get_cluster_data_impl(
+//     context: InHandlePtr,
+//     incoming: Option<&ClusterData>,
+//     outgoing: Option<&mut ClusterData>,
+// ) -> FFIError {
+//     if let Some(handle) = context {
+//         if let Some(in_node) = incoming {
+//             if let Some(out_node) = outgoing {
+//                 *out_node = *in_node;
+
+//                 match out_node.id.as_string() {
+//                     Ok(path) => match handle.find_node(path) {
+//                         Ok(cluster_data) => {
+//                             out_node.set_from_clam(&cluster_data);
+//                             if let Some(query) = handle.get_current_query() {
+//                                 out_node.dist_to_query = cluster_data
+//                                     .distance_to_instance(handle.data().unwrap(), query);
+//                             }
+//                             return FFIError::Ok;
+//                         }
+//                         Err(e) => {
+//                             debug!("error {:?}", e);
+//                             return e;
+//                         }
+//                     },
+//                     Err(e) => {
+//                         debug!("error {:?}", e);
+//                         return e;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     return FFIError::NullPointerPassed;
+// }
 
 pub unsafe fn color_by_dist_to_query_impl(
     context: InHandlePtr,
@@ -92,7 +119,7 @@ pub unsafe fn color_by_dist_to_query_impl(
         if arr_ptr.is_null() {
             return FFIError::NullPointerPassed;
         }
-        debug!("creating string arr");
+        // debug!("creating string arr");
         let arr = std::slice::from_raw_parts(arr_ptr, len as usize);
 
         let mut ids = Vec::new();
@@ -101,7 +128,7 @@ pub unsafe fn color_by_dist_to_query_impl(
         }
 
         let err = handle.color_by_dist_to_query(ids.as_slice(), node_visitor);
-        debug!("color result {:?}", err);
+        // debug!("color result {:?}", err);
         return err;
     } else {
         return FFIError::NullPointerPassed;
@@ -121,7 +148,6 @@ pub unsafe fn distance_to_other_impl(
         if let Ok(node1) = node1 {
             if let Ok(node2) = node2 {
                 let distance = node1.distance_to_other(handle.data().unwrap(), node2);
-                debug!("distance between selected {}", distance);
                 return distance;
             } else {
                 return -1f32;

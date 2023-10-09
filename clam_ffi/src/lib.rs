@@ -1,18 +1,19 @@
 //need to use partial struct to pass by reference and access sub structs
 // pass by pointer with classes but cant seem to access sub structs
 
-use std::ffi::c_char;
+use std::{ffi::c_char, ptr::null_mut};
 mod ffi_impl;
 mod graph;
 mod handle;
 mod tests;
 mod tree_layout;
 mod utils;
+use abd_clam::utils::helpers;
 use ffi_impl::{
-    cluster_data::ClusterData,
+    cluster_data::{self, ClusterData},
     lib_impl::{
         color_by_dist_to_query_impl, distance_to_other_impl, for_each_dft_impl,
-        get_cluster_data_impl, test_cakes_rnn_query_impl, tree_height_impl,
+        test_cakes_rnn_query_impl, tree_height_impl,
     },
 };
 use graph::entry::{
@@ -22,12 +23,81 @@ use tree_layout::entry_point::{draw_heirarchy_impl, draw_heirarchy_offset_from_i
 use utils::{
     debug,
     error::FFIError,
+    // helpers,
     types::{InHandlePtr, OutHandlePtr},
 };
 
 use crate::handle::entry_point::{init_clam_impl, shutdown_clam_impl};
 
 type CBFnNodeVisitor = extern "C" fn(Option<&ClusterData>) -> ();
+
+#[no_mangle]
+pub unsafe extern "C" fn create_cluster_data(
+    ptr: InHandlePtr,
+    id: *const c_char,
+    outgoing: Option<&mut ClusterData>,
+) -> FFIError {
+    if let Some(handle) = ptr {
+        let outgoing = outgoing.unwrap();
+        let id = utils::helpers::c_char_to_string(id);
+        // let data = Box::new(ClusterData::default());
+
+        // match out_node.id.as_string() {
+        match handle.find_node(id) {
+            Ok(cluster) => {
+                let cluster_data = ClusterData::from_clam(cluster);
+                // cluster_data.
+                // debug!(
+                //     // "found cluster with create cluster {:?}",
+                //     cluster_data.get_id()
+                // );
+                // *outgoing = Box::into_raw(Box::new(cluster_data));
+                *outgoing = cluster_data;
+                return FFIError::Ok;
+            }
+            Err(e) => {
+                return FFIError::InvalidStringPassed;
+            }
+        }
+    }
+    return FFIError::NullPointerPassed;
+}
+
+#[no_mangle]
+pub extern "C" fn delete_cluster_data(
+    in_cluster_data: Option<&ClusterData>,
+    out_cluster_data: Option<&mut ClusterData>,
+) -> FFIError {
+    // if data.is_none() {
+    // }
+
+    if let Some(in_data) = in_cluster_data {
+        if let Some(out_data) = out_cluster_data {
+            *out_data = *in_data;
+            out_data.free_ids();
+            return FFIError::Ok;
+        } else {
+            return FFIError::NullPointerPassed;
+        }
+    } else {
+        return FFIError::NullPointerPassed;
+    }
+
+    // let ctx = data.unwrap();
+
+    // {
+    //     unsafe { drop(Box::from_raw(*ctx)) };
+    // }
+
+    // *ctx = null_mut();
+}
+
+#[repr(C)]
+pub struct Context {
+    pub foo: bool,
+    pub bar: i32,
+    pub baz: u64,
+}
 
 // ------------------------------------- Startup/Shutdown -------------------------------------
 
@@ -64,14 +134,14 @@ pub unsafe extern "C" fn tree_height(ptr: InHandlePtr) -> i32 {
 
 // ------------------------------------- Cluster Helpers -------------------------------------
 
-#[no_mangle]
-pub unsafe extern "C" fn get_cluster_data(
-    context: InHandlePtr,
-    incoming: Option<&ClusterData>,
-    outgoing: Option<&mut ClusterData>,
-) -> FFIError {
-    return get_cluster_data_impl(context, incoming, outgoing);
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn get_cluster_data(
+//     context: InHandlePtr,
+//     incoming: Option<&ClusterData>,
+//     outgoing: Option<&mut ClusterData>,
+// ) -> FFIError {
+//     return get_cluster_data_impl(context, incoming, outgoing);
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn distance_to_other(
