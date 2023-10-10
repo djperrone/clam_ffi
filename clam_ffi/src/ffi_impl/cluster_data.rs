@@ -17,9 +17,8 @@ pub struct ClusterData {
     pub color: glam::Vec3,
 
     pub id: StringFFI,
-    pub left_id: StringFFI,
-    pub right_id: StringFFI,
-
+    // pub left_id: StringFFI,
+    // pub right_id: StringFFI,
     pub message: StringFFI,
 
     pub cardinality: i32,
@@ -38,8 +37,8 @@ impl ClusterData {
             id: StringFFI::new("".to_string()),
             color: glam::Vec3::new(0., 0., 0.),
             pos: glam::Vec3::new(0., 0., 0.),
-            left_id: StringFFI::new("default".to_string()),
-            right_id: StringFFI::new("default".to_string()),
+            // left_id: StringFFI::new("default".to_string()),
+            // right_id: StringFFI::new("default".to_string()),
             cardinality: -1,
             depth: -1,
             radius: -1.0,
@@ -55,8 +54,8 @@ impl ClusterData {
             id: StringFFI::new(id),
             color: glam::Vec3::new(0., 0., 0.),
             pos: position,
-            left_id: StringFFI::new("default".to_string()),
-            right_id: StringFFI::new("default".to_string()),
+            // left_id: StringFFI::new("default".to_string()),
+            // right_id: StringFFI::new("default".to_string()),
             cardinality: -1,
             depth: -1,
             radius: -1.0,
@@ -68,9 +67,14 @@ impl ClusterData {
         }
     }
 
-    pub fn set_left_id(&mut self, id: String) {
-        self.left_id.free();
-        self.left_id = StringFFI::new(id);
+    // pub fn set_left_id(&mut self, id: String) {
+    //     self.left_id.free();
+    //     self.left_id = StringFFI::new(id);
+    // }
+
+    pub fn set_message(&mut self, msg: String) {
+        self.message.free();
+        self.message = StringFFI::new(msg);
     }
 
     pub unsafe fn get_id(&self) -> String {
@@ -111,8 +115,8 @@ impl ClusterData {
             pos: glam::Vec3::new(0., 0., 0.),
             color: glam::Vec3::new(0., 0., 0.),
             id: (StringFFI::new(node.name())),
-            left_id: StringFFI::new(left_id),
-            right_id: StringFFI::new(right_id),
+            // left_id: StringFFI::new(left_id),
+            // right_id: StringFFI::new(right_id),
             cardinality: (node.cardinality() as i32),
             depth: (node.depth() as i32),
             radius: node.radius(),
@@ -134,8 +138,8 @@ impl ClusterData {
                 other.get_color().z,
             ),
             id: StringFFI::new(other.get_name()),
-            left_id: StringFFI::new(left),
-            right_id: StringFFI::new(right),
+            // left_id: StringFFI::new(left),
+            // right_id: StringFFI::new(right),
             cardinality: -1,
             depth: -1,
             radius: -1.0,
@@ -148,8 +152,8 @@ impl ClusterData {
     }
     pub fn free_ids(&mut self) {
         self.id.free();
-        self.left_id.free();
-        self.right_id.free();
+        // self.left_id.free();
+        // self.right_id.free();
         self.message.free();
     }
 }

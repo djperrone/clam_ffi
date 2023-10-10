@@ -1,4 +1,7 @@
-use std::ffi::{c_char, CString};
+use std::{
+    ffi::{c_char, CStr, CString},
+    ptr::null_mut,
+};
 
 use crate::utils::{error::FFIError, helpers};
 
@@ -19,12 +22,26 @@ impl StringFFI {
         }
     }
 
-    pub unsafe fn as_string(&self) -> Result<String, FFIError> {
+    pub fn default() -> Self {
+        StringFFI {
+            // data: Self::alloc_to_c_char(data.clone()) as *mut u8,
+            len: 0 as i32,
+            data: null_mut(),
+            // str.into_raw()
+        }
+    }
+
+    pub fn as_string(&self) -> Result<String, FFIError> {
         // return Self::csharp_to_rust_utf8(self.data, self.len);
-        let slice = std::slice::from_raw_parts(self.data, self.len as usize);
-        match String::from_utf8(slice.to_vec()) {
-            Ok(str) => Ok(str),
-            Err(_) => Err(FFIError::InvalidStringPassed),
+        unsafe {
+            if self.data.is_null() {
+                return Err(FFIError::NullPointerPassed);
+            }
+            let slice = std::slice::from_raw_parts(self.data, self.len as usize);
+            match String::from_utf8(slice.to_vec()) {
+                Ok(str) => Ok(str),
+                Err(_) => Err(FFIError::InvalidStringPassed),
+            }
         }
     }
 
@@ -47,12 +64,25 @@ impl StringFFI {
                 {
                     CString::from_raw(self.data as *mut i8);
                     self.len = 0;
-                    
                 };
             }
         }
         // Self::free_string(self.data);
     }
+
+    pub fn c_char_to_string(s: *const c_char) -> String {
+        let c_str = unsafe {
+            assert!(!s.is_null());
+
+            CStr::from_ptr(s)
+        };
+        // debug!("cstr testing {:?}", c_str);
+        let r_str = c_str.to_str().unwrap();
+
+        String::from(r_str)
+    }
+
+    // pub fn to_string()
 
     // unsafe fn csharp_to_rust_utf8(utf8_str: *const u8, utf8_len: i32) -> Result<String, FFIError> {
     //     let slice = std::slice::from_raw_parts(utf8_str, utf8_len as usize);

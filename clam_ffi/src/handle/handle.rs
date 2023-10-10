@@ -11,6 +11,7 @@ use abd_clam::dataset::VecVec;
 use abd_clam::search::cakes::CAKES;
 // use glam::Vec3;
 
+use crate::ffi_impl::cluster_ids::{ClusterIDs, ClusterIDsWrapper};
 use crate::graph::force_directed_graph::ForceDirectedGraph;
 use crate::graph::{self, spring};
 use crate::tree_layout::reingold_tilford;
@@ -196,7 +197,6 @@ impl Handle {
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
-
             let is_finished = force_directed_graph.0.is_finished();
 
             if is_finished {
@@ -274,6 +274,53 @@ impl Handle {
             }
         } else {
             return FFIError::NullPointerPassed;
+        }
+    }
+
+    pub unsafe fn set_names(
+        &self,
+        node_visitor: crate::CBFnNameSetter,
+        start_node: String,
+    ) -> FFIError {
+        if let Some(cakes) = &self.cakes {
+            if start_node == "root" {
+                let node = cakes.tree().root();
+                Self::set_names_helper(&node, node_visitor);
+                return FFIError::Ok;
+            } else {
+                match Self::find_node(&self, start_node) {
+                    Ok(root) => {
+                        Self::set_names_helper(root, node_visitor);
+                        return FFIError::Ok;
+                    }
+                    Err(e) => {
+                        debug!("{:?}", e);
+                        return FFIError::InvalidStringPassed;
+                    }
+                }
+            }
+        } else {
+            return FFIError::NullPointerPassed;
+        }
+    }
+
+    fn set_names_helper(root: &Clusterf32, node_visitor: crate::CBFnNameSetter) {
+        if root.is_leaf() {
+            let baton = ClusterIDsWrapper::from_cluster(&root);
+
+            node_visitor(Some(baton.data()));
+            // baton.free_ids();
+
+            return;
+        }
+        if let Some([left, right]) = root.children() {
+            let baton = ClusterIDsWrapper::from_cluster(&root);
+
+            node_visitor(Some(baton.data()));
+            // baton.free_ids();
+
+            Self::set_names_helper(left, node_visitor);
+            Self::set_names_helper(right, node_visitor);
         }
     }
 

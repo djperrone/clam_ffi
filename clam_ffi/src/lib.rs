@@ -11,10 +11,12 @@ mod utils;
 use abd_clam::utils::helpers;
 use ffi_impl::{
     cluster_data::{self, ClusterData},
+    cluster_ids::ClusterIDs,
     lib_impl::{
-        color_by_dist_to_query_impl, distance_to_other_impl, for_each_dft_impl,
+        color_by_dist_to_query_impl, distance_to_other_impl, for_each_dft_impl, set_names_impl,
         test_cakes_rnn_query_impl, tree_height_impl,
     },
+    string_ffi::StringFFI,
 };
 use graph::entry::{
     physics_update_async_impl, run_force_directed_graph_sim_impl, shutdown_physics_impl,
@@ -30,6 +32,8 @@ use utils::{
 use crate::handle::entry_point::{init_clam_impl, shutdown_clam_impl};
 
 type CBFnNodeVisitor = extern "C" fn(Option<&ClusterData>) -> ();
+type CBFnNameSetter = extern "C" fn(Option<&ClusterIDs>) -> ();
+type CBFnNodeVisitorMut = extern "C" fn(Option<&mut ClusterData>) -> ();
 
 #[no_mangle]
 pub unsafe extern "C" fn create_cluster_data(
@@ -92,6 +96,39 @@ pub extern "C" fn delete_cluster_data(
     // *ctx = null_mut();
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn set_message(
+    msg: *const c_char,
+    // in_cluster_data: Option<&ClusterData>,
+    out_cluster_data: Option<&mut ClusterData>,
+) -> FFIError {
+    // if data.is_none() {
+    // }
+
+    // if let Some(in_data) = in_cluster_data {
+    if let Some(out_data) = out_cluster_data {
+        // *out_data = *in_data;
+        // out_data.free_ids();
+        let msg_str = StringFFI::c_char_to_string(msg);
+
+        out_data.set_message(msg_str);
+        return FFIError::Ok;
+    } else {
+        return FFIError::NullPointerPassed;
+    }
+    // } else {
+    //     return FFIError::NullPointerPassed;
+    // }
+
+    // let ctx = data.unwrap();
+
+    // {
+    //     unsafe { drop(Box::from_raw(*ctx)) };
+    // }
+
+    // *ctx = null_mut();
+}
+
 #[repr(C)]
 pub struct Context {
     pub foo: bool,
@@ -125,6 +162,15 @@ pub unsafe extern "C" fn for_each_dft(
     start_node: *const c_char,
 ) -> FFIError {
     return for_each_dft_impl(ptr, node_visitor, start_node);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn set_names(
+    ptr: InHandlePtr,
+    node_visitor: CBFnNameSetter,
+    start_node: *const c_char,
+) -> FFIError {
+    return set_names_impl(ptr, node_visitor, start_node);
 }
 
 #[no_mangle]
@@ -177,7 +223,7 @@ pub unsafe extern "C" fn run_force_directed_graph_sim(
     len: i32,
     scalar: f32,
     max_iters: i32,
-    edge_detect_cb: CBFnNodeVisitor,
+    edge_detect_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {
     return run_force_directed_graph_sim_impl(

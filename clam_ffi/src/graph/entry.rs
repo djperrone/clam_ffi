@@ -2,7 +2,7 @@ use crate::{
     debug,
     ffi_impl::cluster_data::ClusterData,
     utils::{error::FFIError, types::InHandlePtr},
-    CBFnNodeVisitor,
+    CBFnNodeVisitor, CBFnNodeVisitorMut,
 };
 
 use super::graph_builder;
@@ -27,7 +27,7 @@ pub unsafe fn run_force_directed_graph_sim_impl(
     len: i32,
     scalar: f32,
     max_iters: i32,
-    edge_detect_cb: CBFnNodeVisitor,
+    edge_detect_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {
     if let Some(handle) = context {

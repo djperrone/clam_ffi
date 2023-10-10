@@ -3,7 +3,7 @@ use std::ffi::{c_char, CStr};
 use crate::{
     debug,
     utils::{error::FFIError, helpers, types::InHandlePtr},
-    CBFnNodeVisitor,
+    CBFnNameSetter, CBFnNodeVisitor,
 };
 
 use super::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper};
@@ -25,6 +25,31 @@ pub unsafe fn for_each_dft_impl(
 
             // return Handle::from_ptr(ptr).for_each_dft(node_visitor, r_str.to_string());
             return handle.for_each_dft(node_visitor, r_str.to_string());
+        } else {
+            return FFIError::InvalidStringPassed;
+        }
+    }
+
+    return FFIError::NullPointerPassed;
+}
+
+pub unsafe fn set_names_impl(
+    ptr: InHandlePtr,
+    node_visitor: CBFnNameSetter,
+    start_node: *const c_char,
+) -> FFIError {
+    if let Some(handle) = ptr {
+        if !start_node.is_null() {
+            let c_str = unsafe {
+                // assert!(!start_node.is_null());
+
+                CStr::from_ptr(start_node)
+            };
+            let r_str = c_str.to_str().unwrap();
+            // debug!("start node name {}", r_str);
+
+            // return Handle::from_ptr(ptr).for_each_dft(node_visitor, r_str.to_string());
+            return handle.set_names(node_visitor, r_str.to_string());
         } else {
             return FFIError::InvalidStringPassed;
         }

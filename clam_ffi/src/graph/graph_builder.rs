@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    debug,
     // debug,
     ffi_impl::{cluster_data::ClusterData, cluster_data_wrapper::ClusterDataWrapper},
 
@@ -15,6 +16,7 @@ use crate::{
         types::{Clusterf32, DataSet},
     },
     CBFnNodeVisitor,
+    CBFnNodeVisitorMut,
 };
 
 use super::{force_directed_graph::ForceDirectedGraph, physics_node::PhysicsNode, spring::Spring};
@@ -24,7 +26,7 @@ pub unsafe fn build_force_directed_graph(
     handle: &Handle,
     scalar: f32,
     max_iters: i32,
-    edge_detector_cb: CBFnNodeVisitor,
+    edge_detector_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> Result<(JoinHandle<()>, Arc<ForceDirectedGraph>), FFIError> {
     let springs: Vec<Spring> = {
@@ -90,7 +92,7 @@ pub unsafe fn build_graph(
 pub fn detect_edges(
     clusters: &Vec<&Clusterf32>,
     dataset: &Option<&DataSet>,
-    node_visitor: crate::CBFnNodeVisitor,
+    node_visitor: crate::CBFnNodeVisitorMut,
 ) -> Vec<(String, String, f32)> {
     let mut edges: Vec<(String, String, f32)> = Vec::new();
     if let Some(data) = dataset {
@@ -101,9 +103,18 @@ pub fn detect_edges(
                     edges.push((clusters[i].name(), clusters[j].name(), distance));
 
                     let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
-                    baton.data_mut().set_left_id(clusters[j].name());
-                    node_visitor(Some(baton.data()));
-                    // data.free_ids();
+                    baton.data_mut().set_message(clusters[j].name());
+                    node_visitor(Some(baton.data_mut()));
+
+                    // debug!(
+                    //     "message from unity {}",
+                    //     baton
+                    //         .data()
+                    //         .message
+                    //         .as_string()
+                    //         .unwrap_or("error null string".to_string())
+                    // );
+                    // // data.free_ids();
                 }
             }
         }
