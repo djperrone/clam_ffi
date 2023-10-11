@@ -1,6 +1,6 @@
 use crate::handle::handle::Handle;
 use crate::utils::helpers;
-use crate::utils::types::{OutHandlePtr, InHandlePtr};
+use crate::utils::types::{InHandlePtr, OutHandlePtr};
 
 use crate::utils::error::FFIError;
 
@@ -8,10 +8,10 @@ use crate::debug;
 
 pub unsafe fn shutdown_clam_impl(context_ptr: OutHandlePtr) -> FFIError {
     if let Some(handle) = context_ptr {
-
         let _ = Box::from_raw(*handle);
         return FFIError::Ok;
     } else {
+        debug!("shtudown clam handle not valid?");
         return FFIError::NullPointerPassed;
     }
 }
@@ -29,7 +29,6 @@ pub unsafe fn force_physics_shutdown(ptr: InHandlePtr) -> i32 {
 
     return 0;
 }
-
 
 pub unsafe fn init_clam_impl(
     ptr: OutHandlePtr,

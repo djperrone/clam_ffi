@@ -5,7 +5,8 @@
 use rand::{rngs::ThreadRng, Rng};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use abd_clam::core::{cluster::Cluster, dataset::VecVec};
+use abd_clam::core::{cluster::Cluster, dataset::VecDataset};
+// use abd_clam::core::dataset::VecDataset;
 
 use crate::{debug, utils::types::DataSet};
 
@@ -72,7 +73,8 @@ impl Node {
     }
 
     pub fn create_layout(
-        abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        abd_clam_root: &Cluster<f32>,
+        // abd_clam_root: &Cluster<f32, f32, VecDataset<f32, f32>>,
         labels: &Option<Vec<u8>>,
         data: &Option<&DataSet>,
     ) -> Link {
@@ -100,9 +102,9 @@ impl Node {
 
     fn init_helper(
         draw_root: Link,
-        abd_clam_root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        abd_clam_root: &Cluster<f32>,
         labels: &Option<Vec<u8>>,
-        data: &Option<&VecVec<f32, f32>>,
+        data: &Option<&VecDataset<Vec<f32>, f32>>,
         depth: f32,
     ) {
         if abd_clam_root.is_leaf() {
@@ -357,50 +359,52 @@ impl Node {
     //     }
     // }
     fn color_filler(
-        root: &Cluster<f32, f32, VecVec<f32, f32>>,
+        root: &Cluster<f32>,
         labels: &Option<Vec<u8>>,
-        data: &Option<&VecVec<f32, f32>>,
+        data: &Option<&VecDataset<Vec<f32>, f32>>,
     ) -> Vec3 {
-        match labels {
-            Some(labels_unwrapped) => {
-                return Vec3::new(0f32, 1f32, 0.0);
+        return Vec3::new(0f32, 1f32, 0.0);
 
-                // this should change
-                let mut entropy = vec![0; 2];
-                // debug!("here1");
+        // match labels {
+        //     Some(labels_unwrapped) => {
+        //         return Vec3::new(0f32, 1f32, 0.0);
 
-                if let Some(d) = data {
-                    let indices = root.indices(d);
-                    // debug!("here2");
+        //         // this should change
+        //         let mut entropy = vec![0; 2];
+        //         // debug!("here1");
 
-                    for label in labels_unwrapped {
-                        if *label < 2 {
-                            entropy[*label as usize] += 1;
-                        } else {
-                            return Vec3::new(1f32, 1f32, 1.0);
-                        }
-                    }
-                    // debug!("here3");
+        //         if let Some(d) = data {
+        //             let indices = root.indices(d);
+        //             // debug!("here2");
 
-                    // indices
-                    //     .iter()
-                    //     .for_each(|i| entropy[labels_unwrapped[*i] as usize] += 1);
+        //             for label in labels_unwrapped {
+        //                 if *label < 2 {
+        //                     entropy[*label as usize] += 1;
+        //                 } else {
+        //                     return Vec3::new(1f32, 1f32, 1.0);
+        //                 }
+        //             }
+        //             // debug!("here3");
 
-                    let total_entropy: u32 = entropy.iter().sum();
+        //             // indices
+        //             //     .iter()
+        //             //     .for_each(|i| entropy[labels_unwrapped[*i] as usize] += 1);
 
-                    let perc_inliers = entropy[0] as f32 / total_entropy as f32;
-                    let perc_outliers = entropy[1] as f32 / total_entropy as f32;
-                    // debug!("here4");
+        //             let total_entropy: u32 = entropy.iter().sum();
 
-                    return Vec3::new(perc_outliers, perc_inliers, 0.0);
-                } else {
-                    return Vec3::new(0f32, 1f32, 1.0);
-                }
-            }
-            None => {
-                return Vec3::new(0f32, 1f32, 0.0);
-            }
-        }
+        //             let perc_inliers = entropy[0] as f32 / total_entropy as f32;
+        //             let perc_outliers = entropy[1] as f32 / total_entropy as f32;
+        //             // debug!("here4");
+
+        //             return Vec3::new(perc_outliers, perc_inliers, 0.0);
+        //         } else {
+        //             return Vec3::new(0f32, 1f32, 1.0);
+        //         }
+        //     }
+        //     None => {
+        //         return Vec3::new(0f32, 1f32, 0.0);
+        //     }
+        // }
     }
 
     pub fn get_children(&self) -> (Link, Link) {

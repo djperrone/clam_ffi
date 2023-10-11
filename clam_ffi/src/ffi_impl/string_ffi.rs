@@ -1,6 +1,6 @@
 use std::{
     ffi::{c_char, CStr, CString},
-    ptr::null_mut,
+    ptr::{null, null_mut},
 };
 
 use crate::utils::{error::FFIError, helpers};
@@ -62,8 +62,9 @@ impl StringFFI {
         unsafe {
             if !self.data.is_null() {
                 {
-                    CString::from_raw(self.data as *mut i8);
+                    drop(CString::from_raw(self.data as *mut i8));
                     self.len = 0;
+                    self.data = null_mut();
                 };
             }
         }

@@ -1,4 +1,7 @@
-use abd_clam::{dataset::VecVec, number::Number};
+// use abd_clam::{dataset::VecVec, number::Number};
+use abd_clam::core::{cluster::Cluster, dataset::VecDataset};
+// use
+
 use glam::Vec3;
 
 use crate::{
@@ -14,7 +17,7 @@ use super::reingold_impl;
 pub fn run(
     clam_root: &Clusterf32,
     labels: &Option<Vec<u8>>,
-    data: &Option<&VecVec<f32, f32>>,
+    data: &Option<&VecDataset<Vec<f32>, f32>>,
     node_visitor: crate::CBFnNodeVisitor,
 ) -> FFIError {
     // if let Some(labels) = &self.labels {
@@ -28,7 +31,7 @@ pub fn run_offset(
     start_pos: &Vec3,
     clam_root: &Clusterf32,
     labels: &Option<Vec<u8>>,
-    data: &Option<&VecVec<f32, f32>>,
+    data: &Option<&VecDataset<Vec<f32>, f32>>,
     node_visitor: crate::CBFnNodeVisitor,
 ) -> FFIError {
     // if let Some(labels) = &self.labels {
@@ -47,7 +50,7 @@ fn update_unity_positions_offset(
         let (x, y, z) = (
             node.as_ref().borrow().get_x(),
             node.as_ref().borrow().get_y(),
-            0.as_f32(),
+            0.0,
         );
         let offset = glam::Vec3::new(start_pos.x - x, start_pos.y - y, start_pos.z - z);
 

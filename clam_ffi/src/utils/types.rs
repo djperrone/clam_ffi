@@ -1,4 +1,4 @@
-use abd_clam::{cluster::Cluster, dataset::VecVec, search::cakes::CAKES};
+use abd_clam::{core::cluster::Cluster, core::dataset::VecDataset, Cakes};
 
 use crate::handle::handle::Handle;
 
@@ -6,6 +6,6 @@ pub type OutHandlePtr<'a> = Option<&'a mut *mut Handle>;
 
 pub type InHandlePtr<'a> = Option<&'a mut Handle>;
 
-pub type Clusterf32 = Cluster<f32, f32, VecVec<f32, f32>>;
-pub type DataSet = VecVec<f32, f32>;
-pub type Cakesf32 = CAKES<f32, f32, VecVec<f32, f32>>;
+pub type Clusterf32 = Cluster<f32>;
+pub type DataSet = VecDataset<Vec<f32>, f32>;
+pub type Cakesf32 = Cakes<f32, f32, DataSet>;

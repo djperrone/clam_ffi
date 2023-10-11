@@ -185,59 +185,59 @@ pub unsafe fn distance_to_other_impl(
     return -1f32;
 }
 
-pub unsafe fn test_cakes_rnn_query_impl(
-    ptr: InHandlePtr,
-    search_radius: f32,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    if let Some(handle) = ptr {
-        let num_queries = 1;
+// pub unsafe fn test_cakes_rnn_query_impl(
+//     ptr: InHandlePtr,
+//     search_radius: f32,
+//     node_visitor: CBFnNodeVisitor,
+// ) -> FFIError {
+//     if let Some(handle) = ptr {
+//         let num_queries = 1;
 
-        for j in 0..1000 {
-            let queries = abd_clam::utils::helpers::gen_data_f32(num_queries, 10, 0., 1., j);
-            let queries = queries.iter().collect::<Vec<_>>();
-            for i in 0..num_queries {
-                let (query, radius, _) = (&queries[i], search_radius, 10);
-                handle.set_current_query(query);
-                let rnn_results = handle.rnn_search(query, radius);
-                match rnn_results {
-                    Ok((confirmed, straddlers)) => {
-                        if straddlers.len() < 5 || confirmed.len() < 5 {
-                            continue;
-                        }
+//         for j in 0..1000 {
+//             let queries = abd_clam::utils::helpers::gen_data_f32(num_queries, 10, 0., 1., j);
+//             let queries = queries.iter().collect::<Vec<_>>();
+//             for i in 0..num_queries {
+//                 let (query, radius, _) = (&queries[i], search_radius, 10);
+//                 handle.set_current_query(query);
+//                 let rnn_results = handle.rnn_search(query, radius);
+//                 match rnn_results {
+//                     Ok((confirmed, straddlers)) => {
+//                         if straddlers.len() < 5 || confirmed.len() < 5 {
+//                             continue;
+//                         }
 
-                        for (cluster, dist) in &confirmed {
-                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
-                            baton.data_mut().dist_to_query = *dist;
-                            baton.data_mut().set_color(glam::Vec3 {
-                                x: 0f32,
-                                y: 1f32,
-                                z: 0f32,
-                            });
-                            node_visitor(Some(baton.data()));
-                        }
+//                         for (cluster, dist) in &confirmed {
+//                             let mut baton = ClusterDataWrapper::from_cluster(cluster);
+//                             baton.data_mut().dist_to_query = *dist;
+//                             baton.data_mut().set_color(glam::Vec3 {
+//                                 x: 0f32,
+//                                 y: 1f32,
+//                                 z: 0f32,
+//                             });
+//                             node_visitor(Some(baton.data()));
+//                         }
 
-                        for (cluster, dist) in &straddlers {
-                            let mut baton = ClusterDataWrapper::from_cluster(cluster);
-                            baton.data_mut().dist_to_query = *dist;
+//                         for (cluster, dist) in &straddlers {
+//                             let mut baton = ClusterDataWrapper::from_cluster(cluster);
+//                             baton.data_mut().dist_to_query = *dist;
 
-                            baton.data_mut().set_color(glam::Vec3 {
-                                x: 0f32,
-                                y: 1f32,
-                                z: 1f32,
-                            });
-                            node_visitor(Some(baton.data()));
-                        }
+//                             baton.data_mut().set_color(glam::Vec3 {
+//                                 x: 0f32,
+//                                 y: 1f32,
+//                                 z: 1f32,
+//                             });
+//                             node_visitor(Some(baton.data()));
+//                         }
 
-                        return FFIError::Ok;
-                    }
-                    Err(_) => {
-                        debug!("rnn failes");
-                    }
-                }
-            }
-        }
-    }
+//                         return FFIError::Ok;
+//                     }
+//                     Err(_) => {
+//                         debug!("rnn failes");
+//                     }
+//                 }
+//             }
+//         }
+//     }
 
-    return FFIError::Ok;
-}
+//     return FFIError::Ok;
+// }

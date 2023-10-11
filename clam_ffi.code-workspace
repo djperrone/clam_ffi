@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../scripts"
+		},
+		{
+			"path": "clam/"
 		}
 	],
 	"settings": {

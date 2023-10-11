@@ -8,13 +8,14 @@ mod handle;
 mod tests;
 mod tree_layout;
 mod utils;
-use abd_clam::utils::helpers;
+// use abd_clam::utils;
+// use abd_clam::utils::helpers;
 use ffi_impl::{
     cluster_data::{self, ClusterData},
     cluster_ids::ClusterIDs,
     lib_impl::{
         color_by_dist_to_query_impl, distance_to_other_impl, for_each_dft_impl, set_names_impl,
-        test_cakes_rnn_query_impl, tree_height_impl,
+        tree_height_impl,
     },
     string_ffi::StringFFI,
 };
@@ -252,27 +253,27 @@ pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
 #[no_mangle]
 pub unsafe extern "C" fn force_physics_shutdown(ptr: InHandlePtr) -> i32 {
     // Handle::from_ptr(ptr).get_num_nodes() + 1
-
+    // force_physics_shutdown_impl(ptr);
     if let Some(handle) = ptr {
         // debug!("cardinality: {}", handle.tree_height() + 1);
         handle.force_physics_shutdown();
-
+        return 0;
         // return handle.tree_height() + 1;
     }
-    debug!("handle not created");
+    debug!("handle not created force physics shutdown");
 
     return 0;
 }
 // ------------------------------------- RNN Search -------------------------------------
 
-#[no_mangle]
-pub unsafe extern "C" fn test_cakes_rnn_query(
-    ptr: InHandlePtr,
-    search_radius: f32,
-    node_visitor: CBFnNodeVisitor,
-) -> FFIError {
-    return test_cakes_rnn_query_impl(ptr, search_radius, node_visitor);
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn test_cakes_rnn_query(
+//     ptr: InHandlePtr,
+//     search_radius: f32,
+//     node_visitor: CBFnNodeVisitor,
+// ) -> FFIError {
+//     return test_cakes_rnn_query_impl(ptr, search_radius, node_visitor);
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn color_by_dist_to_query(

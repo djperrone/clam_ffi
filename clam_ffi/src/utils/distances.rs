@@ -33,6 +33,16 @@ pub fn euclidean_sq(x: &[f32], y: &[f32]) -> f32 {
     x.iter().zip(y.iter()).map(|(&a, &b)| (a - b).powi(2)).sum()
 }
 
+pub fn euclidean_sq_vec(x: &Vec<f32>, y: &Vec<f32>) -> f32 {
+    euclidean_sq(x.as_slice(), y.as_slice())
+    // x.iter()
+    //     .zip(y.iter())
+    //     .map(|(a, b)| a - b)
+    //     .map(|v| v * v)
+    //     .sum::<f32>()
+    //     .sqrt()
+}
+
 #[inline(always)]
 pub fn manhattan(x: &[f32], y: &[f32]) -> f32 {
     x.iter().zip(y.iter()).map(|(&a, &b)| (a - b).abs()).sum()

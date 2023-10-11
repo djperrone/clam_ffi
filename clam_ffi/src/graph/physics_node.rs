@@ -18,7 +18,7 @@ impl PhysicsNode {
             max_speed: 5.,
             velocity: glam::Vec3::new(0., 0., 0.),
             acceleration: glam::Vec3::new(0., 0., 0.),
-            mass: cluster.cardinality() as f32,
+            mass: cluster.cardinality as f32,
         }
     }
 

@@ -95,11 +95,11 @@ pub fn detect_edges(
     node_visitor: crate::CBFnNodeVisitorMut,
 ) -> Vec<(String, String, f32)> {
     let mut edges: Vec<(String, String, f32)> = Vec::new();
-    if let Some(data) = dataset {
+    if let Some(data) = *dataset {
         for i in 0..clusters.len() {
             for j in (i + 1)..clusters.len() {
                 let distance = clusters[i].distance_to_other(data, clusters[j]);
-                if distance <= clusters[i].radius() + clusters[j].radius() {
+                if distance <= clusters[i].radius + clusters[j].radius {
                     edges.push((clusters[i].name(), clusters[j].name(), distance));
 
                     let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
