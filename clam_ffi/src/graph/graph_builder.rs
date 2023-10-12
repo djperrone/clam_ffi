@@ -119,7 +119,7 @@ pub fn detect_edges(
             }
         }
     }
-
+    debug!("number of edges in graph: {}", edges.len());
     return edges;
 }
 

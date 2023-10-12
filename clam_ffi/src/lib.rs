@@ -51,12 +51,7 @@ pub unsafe extern "C" fn create_cluster_data(
         match handle.find_node(id) {
             Ok(cluster) => {
                 let cluster_data = ClusterData::from_clam(cluster);
-                // cluster_data.
-                // debug!(
-                //     // "found cluster with create cluster {:?}",
-                //     cluster_data.get_id()
-                // );
-                // *outgoing = Box::into_raw(Box::new(cluster_data));
+               
                 *outgoing = cluster_data;
                 return FFIError::Ok;
             }
@@ -88,14 +83,57 @@ pub extern "C" fn delete_cluster_data(
         return FFIError::NullPointerPassed;
     }
 
-    // let ctx = data.unwrap();
+}
 
-    // {
-    //     unsafe { drop(Box::from_raw(*ctx)) };
+#[no_mangle]
+pub unsafe extern "C" fn create_cluster_ids(
+    ptr: InHandlePtr,
+    id: *const c_char,
+    outgoing: Option<&mut ClusterIDs>,
+) -> FFIError {
+    if let Some(handle) = ptr {
+        let outgoing = outgoing.unwrap();
+        let id = utils::helpers::c_char_to_string(id);
+        // let data = Box::new(ClusterData::default());
+
+        // match out_node.id.as_string() {
+        match handle.find_node(id) {
+            Ok(cluster) => {
+                let cluster_data = ClusterIDs::from_clam(cluster);
+               
+                *outgoing = cluster_data;
+                return FFIError::Ok;
+            }
+            Err(e) => {
+                return FFIError::InvalidStringPassed;
+            }
+        }
+    }
+    return FFIError::NullPointerPassed;
+}
+
+#[no_mangle]
+pub extern "C" fn delete_cluster_ids(
+    in_cluster_data: Option<&ClusterIDs>,
+    out_cluster_data: Option<&mut ClusterIDs>,
+) -> FFIError {
+    // if data.is_none() {
     // }
 
-    // *ctx = null_mut();
+    if let Some(in_data) = in_cluster_data {
+        if let Some(out_data) = out_cluster_data {
+            *out_data = *in_data;
+            out_data.free_ids();
+            return FFIError::Ok;
+        } else {
+            return FFIError::NullPointerPassed;
+        }
+    } else {
+        return FFIError::NullPointerPassed;
+    }
+
 }
+
 
 #[no_mangle]
 pub unsafe extern "C" fn set_message(
