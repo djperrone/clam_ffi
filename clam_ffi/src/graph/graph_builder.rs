@@ -102,9 +102,9 @@ pub fn detect_edges(
                 if distance <= clusters[i].radius + clusters[j].radius {
                     edges.push((clusters[i].name(), clusters[j].name(), distance));
 
-                    let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
-                    baton.data_mut().set_message(clusters[j].name());
-                    node_visitor(Some(baton.data_mut()));
+                    // let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
+                    // baton.data_mut().set_message(clusters[j].name());
+                    // node_visitor(Some(baton.data_mut()));
 
                     // debug!(
                     //     "message from unity {}",

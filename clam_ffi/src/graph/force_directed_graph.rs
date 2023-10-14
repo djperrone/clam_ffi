@@ -1,10 +1,12 @@
 // use super::node::NodeData;
 use super::physics_node::PhysicsNode;
 use super::spring::Spring;
+use crate::ffi_impl::cluster_data::ClusterData;
 // use crate::ffi_impl::cluster_data::ClusterData;
 use crate::ffi_impl::cluster_data_wrapper::ClusterDataWrapper;
+use crate::handle::handle::Handle;
 use crate::utils::error::FFIError;
-use crate::{debug, CBFnNodeVisitor};
+use crate::{debug, ffi_impl, CBFnNodeVisitor, CBFnNodeVisitorMut};
 use std::collections::HashMap;
 
 use std::sync::{Condvar, Mutex};
@@ -18,7 +20,8 @@ pub struct Status {
 impl Status {
     pub fn new() -> Self {
         Status {
-            data_ready: false,
+            // this prevents thread from beginning work immediately - true
+            data_ready: true,
             force_shutdown: false,
             // probably not needed - thread has .isfinished...
             // finished: false,
@@ -262,4 +265,25 @@ pub unsafe fn try_update_unity(
 
 pub unsafe fn force_shutdown(force_directed_graph: &ForceDirectedGraph) -> FFIError {
     return force_directed_graph.force_shutdown();
+}
+
+pub fn get_num_edges(force_directed_graph: &ForceDirectedGraph) -> i32 {
+    return force_directed_graph.edges.len() as i32;
+}
+
+pub fn init_unity_edges(
+    // handle: &Handle,
+    force_directed_graph: &ForceDirectedGraph,
+    init_edges: CBFnNodeVisitorMut,
+) {
+    for edge in &force_directed_graph.edges {
+        let mut data = ClusterData::default();
+        let (id1, id2) = edge.get_node_ids();
+        data.set_id(id1);
+        data.set_message(id2);
+
+        init_edges(Some(&mut data));
+
+        data.free_ids();
+    }
 }

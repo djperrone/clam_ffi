@@ -77,6 +77,11 @@ impl ClusterData {
         self.message = StringFFI::new(msg);
     }
 
+    pub fn set_id(&mut self, msg: String) {
+        self.id.free();
+        self.id = StringFFI::new(msg);
+    }
+
     pub unsafe fn get_id(&self) -> String {
         self.id.as_string().unwrap()
     }

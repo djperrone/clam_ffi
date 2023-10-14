@@ -16,14 +16,14 @@ use abd_clam::Cakes;
 // use glam::Vec3;
 
 use crate::ffi_impl::cluster_ids::{ClusterIDs, ClusterIDsWrapper};
-use crate::graph::force_directed_graph::ForceDirectedGraph;
+use crate::graph::force_directed_graph::{self, ForceDirectedGraph};
 use crate::graph::{self, spring};
 use crate::tree_layout::reingold_tilford;
 use crate::utils::error::FFIError;
 use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
 use crate::utils::{anomaly_readers, distances, helpers};
 
-use crate::{debug, CBFnNodeVisitor};
+use crate::{debug, CBFnNodeVisitor, CBFnNodeVisitorMut};
 
 use crate::ffi_impl::cluster_data::ClusterData;
 use crate::ffi_impl::cluster_data_wrapper::ClusterDataWrapper;
@@ -69,7 +69,8 @@ pub struct Handle {
     current_query: Option<Vec<f32>>,
     // longest_edge: Option<f32>,
     force_directed_graph: Option<(JoinHandle<()>, Arc<ForceDirectedGraph>)>,
-    testDrop: Option<TestDrop>,
+    test_drop: Option<TestDrop>,
+    num_edges_in_graph: Option<i32>, // temporary figure out better way later
 }
 
 // impl Drop for Handle {
@@ -156,7 +157,8 @@ impl Handle {
                     current_query: None,
                     // longest_edge: None,
                     force_directed_graph: None,
-                    testDrop: Some(TestDrop { test: 5 }),
+                    test_drop: Some(TestDrop { test: 5 }),
+                    num_edges_in_graph: None,
                 });
             }
             Err(_) => Err(FFIError::HandleInitFailed),
@@ -198,6 +200,30 @@ impl Handle {
         return FFIError::PhysicsAlreadyShutdown;
     }
 
+    pub unsafe fn init_unity_edges(&mut self, edge_detect_cb: CBFnNodeVisitorMut) -> FFIError {
+        // let mut finished = false;
+
+        //** */ this function blocks the main thread which prevents ohysics from finishing -
+        // need to notify working thread to stop and then wait for it
+
+        if let Some(force_directed_graph) = &self.force_directed_graph {
+            graph::force_directed_graph::init_unity_edges(
+                // self,
+                &force_directed_graph.1,
+                edge_detect_cb,
+            );
+
+            // let is_finished = force_directed_graph.0.is_finished();
+
+            // let _ = self.force_directed_graph.take().unwrap().0.join();
+
+            // self.force_directed_graph = None;
+            // debug!("shutting down physics");
+            // return FFIError::PhysicsFinished;
+        }
+        return FFIError::PhysicsAlreadyShutdown;
+    }
+
     pub unsafe fn physics_update_async(&mut self, updater: CBFnNodeVisitor) -> FFIError {
         // let mut finished = false;
         if let Some(force_directed_graph) = &self.force_directed_graph {
@@ -225,6 +251,13 @@ impl Handle {
 
     pub fn set_graph(&mut self, graph: (JoinHandle<()>, Arc<ForceDirectedGraph>)) {
         self.force_directed_graph = Some(graph);
+        if let Some(g) = &self.force_directed_graph {
+            self.num_edges_in_graph = Some(force_directed_graph::get_num_edges(&g.1));
+        }
+    }
+
+    pub fn get_num_edges_in_graph(&self) -> i32 {
+        self.num_edges_in_graph.unwrap_or(-1)
     }
 
     pub unsafe fn color_by_dist_to_query(

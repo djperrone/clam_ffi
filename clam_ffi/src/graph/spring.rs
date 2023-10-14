@@ -21,6 +21,10 @@ impl Spring {
         }
     }
 
+    pub fn get_node_ids(&self) -> (String, String) {
+        return (self.node1.clone(), self.node2.clone());
+    }
+
     //apply acceleration to both nodes at each end of spring
     pub fn move_nodes(
         &self,

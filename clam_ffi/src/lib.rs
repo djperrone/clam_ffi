@@ -20,7 +20,8 @@ use ffi_impl::{
     string_ffi::StringFFI,
 };
 use graph::entry::{
-    physics_update_async_impl, run_force_directed_graph_sim_impl, shutdown_physics_impl,
+    get_num_edges_in_graph_impl, physics_update_async_impl, run_force_directed_graph_sim_impl,
+    shutdown_physics_impl, init_force_directed_graph_sim_impl,
 };
 use tree_layout::entry_point::{draw_heirarchy_impl, draw_heirarchy_offset_from_impl};
 use utils::{
@@ -51,7 +52,7 @@ pub unsafe extern "C" fn create_cluster_data(
         match handle.find_node(id) {
             Ok(cluster) => {
                 let cluster_data = ClusterData::from_clam(cluster);
-               
+
                 *outgoing = cluster_data;
                 return FFIError::Ok;
             }
@@ -82,7 +83,6 @@ pub extern "C" fn delete_cluster_data(
     } else {
         return FFIError::NullPointerPassed;
     }
-
 }
 
 #[no_mangle]
@@ -100,7 +100,7 @@ pub unsafe extern "C" fn create_cluster_ids(
         match handle.find_node(id) {
             Ok(cluster) => {
                 let cluster_data = ClusterIDs::from_clam(cluster);
-               
+
                 *outgoing = cluster_data;
                 return FFIError::Ok;
             }
@@ -131,9 +131,7 @@ pub extern "C" fn delete_cluster_ids(
     } else {
         return FFIError::NullPointerPassed;
     }
-
 }
-
 
 #[no_mangle]
 pub unsafe extern "C" fn set_message(
@@ -256,6 +254,26 @@ pub unsafe extern "C" fn draw_heirarchy_offset_from(
 // ------------------------------------- Graph Physics -------------------------------------
 
 #[no_mangle]
+pub unsafe extern "C" fn init_force_directed_graph_sim(
+    context: InHandlePtr,
+    arr_ptr: *mut ClusterData,
+    len: i32,
+    scalar: f32,
+    max_iters: i32,
+    edge_detect_cb: CBFnNodeVisitorMut,
+    // physics_update_cb: CBFnNodeVisitor,
+) -> FFIError {
+    return init_force_directed_graph_sim_impl(
+        context,
+        arr_ptr,
+        len,
+        scalar,
+        max_iters,
+        edge_detect_cb,
+    );
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn run_force_directed_graph_sim(
     context: InHandlePtr,
     arr_ptr: *mut ClusterData,
@@ -286,6 +304,11 @@ pub unsafe extern "C" fn physics_update_async(
 #[no_mangle]
 pub extern "C" fn shutdown_physics(ptr: InHandlePtr) -> FFIError {
     return shutdown_physics_impl(ptr);
+}
+
+#[no_mangle]
+pub extern "C" fn get_num_edges_in_graph(ptr: InHandlePtr) -> i32 {
+    return get_num_edges_in_graph_impl(ptr);
 }
 
 #[no_mangle]
