@@ -20,8 +20,8 @@ use ffi_impl::{
     string_ffi::StringFFI,
 };
 use graph::entry::{
-    get_num_edges_in_graph_impl, physics_update_async_impl, run_force_directed_graph_sim_impl,
-    shutdown_physics_impl, init_force_directed_graph_sim_impl,
+    get_num_edges_in_graph_impl, init_force_directed_graph_impl, init_graph_vertices_impl,
+    physics_update_async_impl, shutdown_physics_impl,
 };
 use tree_layout::entry_point::{draw_heirarchy_impl, draw_heirarchy_offset_from_impl};
 use utils::{
@@ -254,43 +254,27 @@ pub unsafe extern "C" fn draw_heirarchy_offset_from(
 // ------------------------------------- Graph Physics -------------------------------------
 
 #[no_mangle]
-pub unsafe extern "C" fn init_force_directed_graph_sim(
+pub unsafe extern "C" fn init_force_directed_graph(
     context: InHandlePtr,
     arr_ptr: *mut ClusterData,
     len: i32,
     scalar: f32,
     max_iters: i32,
-    edge_detect_cb: CBFnNodeVisitorMut,
+    // edge_detect_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {
-    return init_force_directed_graph_sim_impl(
-        context,
-        arr_ptr,
-        len,
-        scalar,
-        max_iters,
-        edge_detect_cb,
+    return init_force_directed_graph_impl(
+        context, arr_ptr, len, scalar, max_iters,
+        // edge_detect_cb,
     );
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn run_force_directed_graph_sim(
+pub unsafe extern "C" fn init_graph_vertices(
     context: InHandlePtr,
-    arr_ptr: *mut ClusterData,
-    len: i32,
-    scalar: f32,
-    max_iters: i32,
     edge_detect_cb: CBFnNodeVisitorMut,
-    // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {
-    return run_force_directed_graph_sim_impl(
-        context,
-        arr_ptr,
-        len,
-        scalar,
-        max_iters,
-        edge_detect_cb,
-    );
+    return init_graph_vertices_impl(context, edge_detect_cb);
 }
 
 #[no_mangle]

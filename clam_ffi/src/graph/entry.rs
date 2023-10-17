@@ -21,13 +21,13 @@ pub unsafe fn physics_update_async_impl(
     }
 }
 
-pub unsafe fn init_force_directed_graph_sim_impl(
+pub unsafe fn init_force_directed_graph_impl(
     context: InHandlePtr,
     arr_ptr: *mut ClusterData,
     len: i32,
     scalar: f32,
     max_iters: i32,
-    edge_detect_cb: CBFnNodeVisitorMut,
+    // edge_detect_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {
     if let Some(handle) = context {
@@ -39,15 +39,14 @@ pub unsafe fn init_force_directed_graph_sim_impl(
         // return handle.second_build_graph(arr, scalar, max_iters, edge_detect_cb, physics_update_cb);
 
         match graph_builder::build_force_directed_graph(
-            arr,
-            handle,
-            scalar,
+            arr, handle, scalar,
             max_iters,
-            edge_detect_cb,
+            // edge_detect_cb,
             // physics_update_cb,
         ) {
             Ok(g) => {
                 handle.set_graph(g);
+                // handle.init_unity_edges(edge_detect_cb);
                 return FFIError::Ok;
             }
             Err(e) => {
@@ -60,12 +59,12 @@ pub unsafe fn init_force_directed_graph_sim_impl(
     }
     // return FFIError::Ok;
 }
-pub unsafe fn run_force_directed_graph_sim_impl(
+pub unsafe fn init_graph_vertices_impl(
     context: InHandlePtr,
-    arr_ptr: *mut ClusterData,
-    len: i32,
-    scalar: f32,
-    max_iters: i32,
+    // arr_ptr: *mut ClusterData,
+    // len: i32,
+    // scalar: f32,
+    // max_iters: i32,
     edge_detect_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> FFIError {

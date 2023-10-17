@@ -26,7 +26,7 @@ pub unsafe fn build_force_directed_graph(
     handle: &Handle,
     scalar: f32,
     max_iters: i32,
-    edge_detector_cb: CBFnNodeVisitorMut,
+    // edge_detector_cb: CBFnNodeVisitorMut,
     // physics_update_cb: CBFnNodeVisitor,
 ) -> Result<(JoinHandle<()>, Arc<ForceDirectedGraph>), FFIError> {
     let springs: Vec<Spring> = {
@@ -37,7 +37,7 @@ pub unsafe fn build_force_directed_graph(
                 clusters.push(cluster);
             }
         }
-        create_springs(&detect_edges(&clusters, &handle.data(), edge_detector_cb))
+        create_springs(&detect_edges(&clusters, &handle.data())) //, edge_detector_cb))
     };
 
     let graph = build_graph(handle, &cluster_data_arr);
@@ -92,7 +92,7 @@ pub unsafe fn build_graph(
 pub fn detect_edges(
     clusters: &Vec<&Clusterf32>,
     dataset: &Option<&DataSet>,
-    node_visitor: crate::CBFnNodeVisitorMut,
+    // node_visitor: crate::CBFnNodeVisitorMut,
 ) -> Vec<(String, String, f32)> {
     let mut edges: Vec<(String, String, f32)> = Vec::new();
     if let Some(data) = *dataset {
