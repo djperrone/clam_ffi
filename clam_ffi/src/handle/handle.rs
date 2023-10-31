@@ -101,6 +101,14 @@ impl Handle {
         }
     }
 
+    pub fn labels(&self) -> Option<&Vec<u8>> {
+        if let Some(labels) = &self.labels {
+            return Some(&labels);
+        } else {
+            return None;
+        }
+    }
+
     pub fn new(data_name: &str, cardinality: usize) -> Result<Self, FFIError> {
         // if data_name == "test" {
         //     let seed = 42;

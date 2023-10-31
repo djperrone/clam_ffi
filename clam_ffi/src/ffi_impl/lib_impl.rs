@@ -2,7 +2,11 @@ use std::ffi::{c_char, CStr};
 
 use crate::{
     debug,
-    utils::{error::FFIError, helpers, types::InHandlePtr},
+    utils::{
+        error::FFIError,
+        helpers,
+        types::{Clusterf32, InHandlePtr},
+    },
     CBFnNameSetter, CBFnNodeVisitor,
 };
 
@@ -71,6 +75,45 @@ pub unsafe fn tree_height_impl(ptr: InHandlePtr) -> i32 {
     return 0;
 }
 
+pub fn color_clusters_by_label_impl(ptr: InHandlePtr, node_visitor: CBFnNodeVisitor) -> FFIError {
+    if let Some(handle) = ptr {
+        if let Some(root) = handle.root() {
+            if let Some(labels) = handle.labels() {
+                if *(labels.iter().max().unwrap()) > (1) {
+                    // need error message for labels not matching
+                    return FFIError::HandleInitFailed;
+                }
+                color_helper(Some(root), &labels, node_visitor);
+                return FFIError::Ok;
+            }
+        }
+    }
+    return FFIError::HandleInitFailed;
+}
+
+fn color_helper(root: Option<&Clusterf32>, labels: &Vec<u8>, node_visitor: CBFnNodeVisitor) {
+    if let Some(cluster) = root {
+        let indices = cluster.indices();
+        let mut entropy = vec![0; 2];
+
+        indices.for_each(|i| entropy[labels[i] as usize] += 1);
+
+        let total_entropy: u32 = entropy.iter().sum();
+
+        let perc_inliers = entropy[0] as f32 / total_entropy as f32;
+        let perc_outliers = entropy[1] as f32 / total_entropy as f32;
+
+        let mut cluster_data = ClusterDataWrapper::from_cluster(cluster);
+        cluster_data.data_mut().color = glam::Vec3::new(perc_outliers, perc_inliers, 0.);
+        node_visitor(Some(cluster_data.data()));
+
+        if let Some(children) = &cluster.children {
+            color_helper(Some(children.left.as_ref()), labels, node_visitor);
+            color_helper(Some(children.right.as_ref()), labels, node_visitor);
+        }
+        // debug!("here4");
+    }
+}
 // pub unsafe fn test_mod_struct(context: InHandlePtr, ptr: *mut ClusterData) {
 //     if let Some(handle) = context {
 //         let mut out_node = unsafe { &mut *ptr };

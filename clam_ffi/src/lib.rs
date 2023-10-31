@@ -215,6 +215,14 @@ pub unsafe extern "C" fn tree_height(ptr: InHandlePtr) -> i32 {
     return tree_height_impl(ptr);
 }
 
+#[no_mangle]
+// add recursive bool option and node name
+pub unsafe extern "C" fn color_clusters_by_label(
+    ptr: InHandlePtr,
+    node_visitor: CBFnNodeVisitor,
+) -> FFIError {
+    return ffi_impl::lib_impl::color_clusters_by_label_impl(ptr, node_visitor);
+}
 // ------------------------------------- Cluster Helpers -------------------------------------
 
 // #[no_mangle]
