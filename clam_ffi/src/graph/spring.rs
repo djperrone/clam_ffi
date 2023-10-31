@@ -9,15 +9,17 @@ pub struct Spring {
     k: f32,
     node1: String, //String's reference hash table
     node2: String,
+    pub is_detected: bool,
 }
 
 impl Spring {
-    pub fn new(nat_len: f32, hash_code1: String, hash_code2: String) -> Self {
+    pub fn new(nat_len: f32, hash_code1: String, hash_code2: String, real: bool) -> Self {
         Spring {
             nat_len: nat_len,
             k: 0.005,
             node1: hash_code1,
             node2: hash_code2,
+            is_detected: real,
         }
     }
 

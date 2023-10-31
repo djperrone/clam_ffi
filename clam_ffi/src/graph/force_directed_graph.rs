@@ -268,7 +268,12 @@ pub unsafe fn force_shutdown(force_directed_graph: &ForceDirectedGraph) -> FFIEr
 }
 
 pub fn get_num_edges(force_directed_graph: &ForceDirectedGraph) -> i32 {
-    return force_directed_graph.edges.len() as i32;
+    return force_directed_graph
+        .edges
+        .iter()
+        .filter(|&edge| edge.is_detected == true)
+        .count() as i32;
+    // return force_directed_graph.edges.len() as i32;
 }
 
 pub fn init_unity_edges(
@@ -277,13 +282,16 @@ pub fn init_unity_edges(
     init_edges: CBFnNodeVisitorMut,
 ) {
     for edge in &force_directed_graph.edges {
-        let mut data = ClusterData::default();
+        let mut data_wrapper = ClusterDataWrapper::default();
         let (id1, id2) = edge.get_node_ids();
-        data.set_id(id1);
-        data.set_message(id2);
+        data_wrapper.data_mut().set_id(id1);
+        let mut msg = (edge.is_detected as i32).to_string();
+        msg.push(' ');
+        msg.push_str(id2.clone().as_str());
+        data_wrapper.data_mut().set_message(msg);
 
-        init_edges(Some(&mut data));
+        init_edges(Some(&mut data_wrapper.data_mut()));
 
-        data.free_ids();
+        // data.free_ids();
     }
 }

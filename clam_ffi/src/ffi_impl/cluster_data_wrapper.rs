@@ -16,6 +16,11 @@ impl Drop for ClusterDataWrapper {
 }
 
 impl ClusterDataWrapper {
+    pub fn default() -> Self {
+        ClusterDataWrapper {
+            data: ClusterData::default(),
+        }
+    }
     pub fn from_cluster(cluster: &Clusterf32) -> Self {
         ClusterDataWrapper {
             data: ClusterData::from_clam(cluster),

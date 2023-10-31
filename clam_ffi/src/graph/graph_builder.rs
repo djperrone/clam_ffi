@@ -19,6 +19,8 @@ use crate::{
     CBFnNodeVisitorMut,
 };
 
+type Edge = (String, String, f32, bool);
+
 use super::{force_directed_graph::ForceDirectedGraph, physics_node::PhysicsNode, spring::Spring};
 
 pub unsafe fn build_force_directed_graph(
@@ -37,7 +39,7 @@ pub unsafe fn build_force_directed_graph(
                 clusters.push(cluster);
             }
         }
-        create_springs(&detect_edges(&clusters, &handle.data())) //, edge_detector_cb))
+        create_springs(detect_edges(&clusters, &handle.data())) //, edge_detector_cb))
     };
 
     let graph = build_graph(handle, &cluster_data_arr);
@@ -93,29 +95,39 @@ pub fn detect_edges(
     clusters: &Vec<&Clusterf32>,
     dataset: &Option<&DataSet>,
     // node_visitor: crate::CBFnNodeVisitorMut,
-) -> Vec<(String, String, f32)> {
-    let mut edges: Vec<(String, String, f32)> = Vec::new();
+) -> Vec<Edge> {
+    let mut edges: Vec<Edge> = Vec::new();
     if let Some(data) = *dataset {
         for i in 0..clusters.len() {
             for j in (i + 1)..clusters.len() {
                 let distance = clusters[i].distance_to_other(data, clusters[j]);
                 if distance <= clusters[i].radius + clusters[j].radius {
-                    edges.push((clusters[i].name(), clusters[j].name(), distance));
+                    edges.push((clusters[i].name(), clusters[j].name(), distance, true));
+                } else {
+                    // edges.push((clusters[i].name(), clusters[j].name(), distance, false));
 
-                    // let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
-                    // baton.data_mut().set_message(clusters[j].name());
-                    // node_visitor(Some(baton.data_mut()));
-
-                    // debug!(
-                    //     "message from unity {}",
-                    //     baton
-                    //         .data()
-                    //         .message
-                    //         .as_string()
-                    //         .unwrap_or("error null string".to_string())
-                    // );
-                    // // data.free_ids();
+                    // edges.push((
+                    //     clusters[i].name(),
+                    //     clusters[j].name(),
+                    //     distance,
+                    //     distance <= clusters[i].radius + clusters[j].radius,
+                    // ));
                 }
+
+                // let mut baton = ClusterDataWrapper::from_cluster(clusters[i]);
+                // baton.data_mut().set_message(clusters[j].name());
+                // node_visitor(Some(baton.data_mut()));
+
+                // debug!(
+                //     "message from unity {}",
+                //     baton
+                //         .data()
+                //         .message
+                //         .as_string()
+                //         .unwrap_or("error null string".to_string())
+                // );
+                // // data.free_ids();
+                // }
             }
         }
     }
@@ -151,7 +163,7 @@ pub fn detect_edges(
 // }
 
 //creates spring for each edge in graph
-fn create_springs(edges_data: &Vec<(String, String, f32)>) -> Vec<Spring> {
+fn create_springs(edges_data: Vec<Edge>) -> Vec<Spring> {
     let spring_multiplier = 5.;
 
     let mut return_vec: Vec<Spring> = Vec::new();
@@ -159,7 +171,12 @@ fn create_springs(edges_data: &Vec<(String, String, f32)>) -> Vec<Spring> {
     for data in edges_data {
         //resting length scaled by spring_multiplier
         // edge_lenght = data.2
-        let new_spring = Spring::new(data.2 * spring_multiplier, data.0.clone(), data.1.clone());
+        let new_spring = Spring::new(
+            data.2 * spring_multiplier,
+            data.0.clone(),
+            data.1.clone(),
+            data.3,
+        );
         return_vec.push(new_spring);
     }
 
