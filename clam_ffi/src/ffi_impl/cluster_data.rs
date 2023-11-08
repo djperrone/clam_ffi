@@ -146,7 +146,7 @@ impl ClusterData {
             // left_id: StringFFI::new(left),
             // right_id: StringFFI::new(right),
             cardinality: -1,
-            depth: -1,
+            depth: other.depth(),
             radius: -1.0,
             lfd: -1.0,
             arg_center: -1,

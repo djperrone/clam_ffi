@@ -1,4 +1,5 @@
 use crate::handle::handle::Handle;
+use crate::utils::distances::DistanceMetric;
 use crate::utils::helpers;
 use crate::utils::types::{InHandlePtr, OutHandlePtr};
 
@@ -35,6 +36,8 @@ pub unsafe fn init_clam_impl(
     data_name: *const u8,
     name_len: i32,
     cardinality: u32,
+    distance_metric: DistanceMetric,
+
 ) -> FFIError {
     let data_name = match helpers::csharp_to_rust_utf8(data_name, name_len) {
         Ok(data_name) => data_name,
@@ -44,7 +47,7 @@ pub unsafe fn init_clam_impl(
         }
     };
 
-    match Handle::new(&data_name, cardinality as usize) {
+    match Handle::new(&data_name, cardinality as usize, distance_metric) {
         Ok(handle) => {
             if let Some(out_handle) = ptr {
                 *out_handle = Box::into_raw(Box::new(handle));

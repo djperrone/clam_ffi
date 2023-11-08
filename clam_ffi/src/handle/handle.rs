@@ -19,9 +19,10 @@ use crate::ffi_impl::cluster_ids::{ClusterIDs, ClusterIDsWrapper};
 use crate::graph::force_directed_graph::{self, ForceDirectedGraph};
 use crate::graph::{self, spring};
 use crate::tree_layout::reingold_tilford;
+use crate::utils::distances::DistanceMetric;
 use crate::utils::error::FFIError;
 use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
-use crate::utils::{anomaly_readers, distances, helpers};
+use crate::utils::{self, anomaly_readers, distances, helpers};
 
 use crate::{debug, CBFnNodeVisitor, CBFnNodeVisitorMut};
 
@@ -109,53 +110,13 @@ impl Handle {
         }
     }
 
-    pub fn new(data_name: &str, cardinality: usize) -> Result<Self, FFIError> {
-        // if data_name == "test" {
-        //     let seed = 42;
-        //     let data = abd_clam::utils::helpers::gen_data_f32(2000, 2, 0., 1., seed);
-        //     let dataset = VecVec::new(data, distances::euclidean_sq, "1k-10".to_string(), false);
-        //     let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
-
-        //     let cakes = CAKES::new(dataset, Some(seed)).build(&criteria);
-        //     // *out_handle = Box::into_raw(Box::new(cakes));
-        //     let handle = Handle {
-        //         cakes: Some(cakes),
-        //         labels: None,
-        //         graph: None,
-        //         edges: None,
-        //         current_query: None,
-        //         // longest_edge: None,
-        //         force_directed_graph: None,
-        //         testDrop: Some(TestDrop { test: 5 }),
-        //     };
-
-        //     return Ok(handle);
-        // }
-
-        // if data_name == "rand" {
-        //     let seed = 42;
-        //     let data = abd_clam::utils::helpers::gen_data_f32(100_00, 10, 0., 1., seed);
-        //     let dataset = VecVec::new(data, distances::euclidean_sq, "100k-10".to_string(), false);
-        //     let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
-
-        //     let cakes = CAKES::new(dataset, Some(seed)).build(&criteria);
-        //     // *out_handle = Box::into_raw(Box::new(cakes));
-        //     let handle = Handle {
-        //         cakes: Some(cakes),
-        //         labels: None,
-        //         graph: None,
-        //         edges: None,
-        //         current_query: None,
-        //         // longest_edge: None,
-        //         force_directed_graph: None,
-        //         testDrop: Some(TestDrop { test: 5 }),
-        //     };
-
-        //     return Ok(handle);
-        // }
-
+    pub fn new(
+        data_name: &str,
+        cardinality: usize,
+        distance_metric: DistanceMetric,
+    ) -> Result<Self, FFIError> {
         let criteria = PartitionCriteria::new(true).with_min_cardinality(cardinality);
-        match Self::create_dataset(data_name) {
+        match Self::create_dataset(data_name, distance_metric) {
             Ok((dataset, labels)) => {
                 return Ok(Handle {
                     cakes: Some(Cakes::new(dataset, Some(1), &criteria)), //.build(&criteria)),
@@ -173,13 +134,17 @@ impl Handle {
         }
     }
 
-    fn create_dataset(data_name: &str) -> Result<(DataSet, Vec<u8>), String> {
+    fn create_dataset(
+        data_name: &str,
+        distance_metric: DistanceMetric,
+        // distance_metric: fn(&Vec<f32>, &Vec<f32>) -> f32,
+    ) -> Result<(DataSet, Vec<u8>), String> {
         match anomaly_readers::read_anomaly_data(data_name, false) {
             Ok((first_data, labels)) => {
                 let dataset = VecDataset::new(
                     data_name.to_string(),
                     first_data,
-                    distances::euclidean_sq_vec,
+                    utils::distances::from_enum(distance_metric),
                     false,
                 );
 
@@ -515,6 +480,7 @@ impl Handle {
                 &cakes.tree().root,
                 &self.labels,
                 &self.data(),
+                cakes.tree().root.max_leaf_depth() as i32,
                 node_visitor,
             );
         } else {
@@ -525,6 +491,8 @@ impl Handle {
     pub unsafe fn create_reingold_layout_offset_from(
         &self,
         root: &ClusterData,
+        current_depth: i32,
+        max_depth: i32,
         node_visitor: crate::CBFnNodeVisitor,
     ) -> FFIError {
         if let Some(_) = &self.cakes {
@@ -534,6 +502,8 @@ impl Handle {
                     clam_root,
                     &self.labels,
                     &self.data(),
+                    current_depth,
+                    max_depth,
                     node_visitor,
                 );
             } else {

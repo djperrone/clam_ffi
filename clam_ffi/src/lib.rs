@@ -26,6 +26,7 @@ use graph::entry::{
 use tree_layout::entry_point::{draw_heirarchy_impl, draw_heirarchy_offset_from_impl};
 use utils::{
     debug,
+    distances::DistanceMetric,
     error::FFIError,
     // helpers,
     types::{InHandlePtr, OutHandlePtr},
@@ -181,8 +182,9 @@ pub unsafe extern "C" fn init_clam(
     data_name: *const u8,
     name_len: i32,
     cardinality: u32,
+    distance_metric: DistanceMetric,
 ) -> FFIError {
-    return init_clam_impl(ptr, data_name, name_len, cardinality);
+    return init_clam_impl(ptr, data_name, name_len, cardinality, distance_metric);
 }
 
 #[no_mangle]
@@ -254,9 +256,11 @@ pub extern "C" fn draw_heirarchy(ptr: InHandlePtr, node_visitor: CBFnNodeVisitor
 pub unsafe extern "C" fn draw_heirarchy_offset_from(
     ptr: InHandlePtr,
     root: Option<&ClusterData>,
+    current_depth: i32,
+    max_depth: i32,
     node_visitor: CBFnNodeVisitor,
 ) -> FFIError {
-    return draw_heirarchy_offset_from_impl(ptr, root, node_visitor);
+    return draw_heirarchy_offset_from_impl(ptr, root, current_depth, max_depth, node_visitor);
 }
 
 // ------------------------------------- Graph Physics -------------------------------------

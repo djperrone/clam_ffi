@@ -74,9 +74,9 @@ impl Node {
 
     pub fn create_layout(
         abd_clam_root: &Cluster<f32>,
-        // abd_clam_root: &Cluster<f32, f32, VecDataset<f32, f32>>,
         labels: &Option<Vec<u8>>,
         data: &Option<&DataSet>,
+        max_depth: i32,
     ) -> Link {
         // debug!("before 1st color filler");
 
@@ -87,7 +87,14 @@ impl Node {
         );
         // debug!("after first color filler");
 
-        Self::init_helper(draw_root.clone(), abd_clam_root, labels, data, 0f32);
+        Self::init_helper(
+            draw_root.clone(),
+            abd_clam_root,
+            labels,
+            data,
+            0f32,
+            max_depth,
+        );
 
         Self::setup(
             draw_root.clone(),
@@ -106,14 +113,13 @@ impl Node {
         labels: &Option<Vec<u8>>,
         data: &Option<&VecDataset<Vec<f32>, f32>>,
         depth: f32,
+        max_depth: i32,
     ) {
-        if abd_clam_root.is_leaf() {
+        if abd_clam_root.is_leaf() || depth as i32 == max_depth as i32 {
             return;
         }
 
-        let subtree = abd_clam_root.children();
-        if subtree.is_some() {
-            let [left, right] = subtree.unwrap();
+        if let Some([left, right]) = abd_clam_root.children() {
             if let Some(node) = draw_root.clone() {
                 if let Ok(id) = i32::from_str_radix(left.name().as_str(), 16) {
                     if id == -1 {
@@ -147,6 +153,7 @@ impl Node {
                     labels,
                     data,
                     depth + 1.,
+                    max_depth,
                 );
                 Self::init_helper(
                     node.as_ref().borrow().get_right_child(),
@@ -154,6 +161,7 @@ impl Node {
                     labels,
                     data,
                     depth + 1.,
+                    max_depth,
                 );
             }
         }
@@ -320,7 +328,7 @@ impl Node {
     }
 
     fn petrify(t: Link, xpos: f32) {
-        if let Some(node) = t.clone() {
+        if let Some(node) = t {
             node.borrow_mut().x = xpos;
             if node.as_ref().borrow().thread {
                 node.borrow_mut().left_child = None;
@@ -474,6 +482,9 @@ impl Node {
 
     pub fn get_y(&self) -> f32 {
         return self.y;
+    }
+    pub fn depth(&self) -> i32 {
+        self.y as i32
     }
 
     pub fn make_complete_tree(max_depth: i32) -> Link {
