@@ -22,7 +22,7 @@ use crate::tree_layout::reingold_tilford;
 use crate::utils::distances::DistanceMetric;
 use crate::utils::error::FFIError;
 use crate::utils::types::{Cakesf32, Clusterf32, DataSet};
-use crate::utils::{self, anomaly_readers, distances, helpers};
+use crate::utils::{self, anomaly_readers, helpers};
 
 use crate::{debug, CBFnNodeVisitor, CBFnNodeVisitorMut};
 

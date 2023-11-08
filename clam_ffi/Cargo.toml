@@ -14,6 +14,7 @@ crate-type = ["cdylib"]
 #abd-clam = { path = "../clam0223/clam/abd-clam" }
 abd-clam = { path = "../clam/abd-clam" }
 distances = { path = "../clam/distances" }
+symagen = { path = "../clam/SyMaGen" }
 #abd-clam = "0.22.3"
 glam = "0.24.0"
 hex = "0.4.3"

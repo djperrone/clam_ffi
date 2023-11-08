@@ -37,7 +37,6 @@ pub unsafe fn init_clam_impl(
     name_len: i32,
     cardinality: u32,
     distance_metric: DistanceMetric,
-
 ) -> FFIError {
     let data_name = match helpers::csharp_to_rust_utf8(data_name, name_len) {
         Ok(data_name) => data_name,
